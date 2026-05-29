@@ -1,6 +1,6 @@
 # DOBOT Nova 5 Control UI
 
-Version: `v0.0.1`
+Version: `v0.0.1.5`
 
 DOBOT Nova 5 Control UI is a local control and automation interface for DOBOT
 Nova 5 and Nova5 controllers. It connects through DOBOT TCP/IP secondary
@@ -62,16 +62,15 @@ settings.
 
 1. Download the GitHub repository as a ZIP, or clone it.
 2. Extract the folder.
-3. Open the extracted `dobot.v0.0.1` folder.
-4. Double-click `DOBOT UI Launcher.bat`.
+3. Open the extracted release folder.
+4. Double-click `DOBOT Nova 5 Control UI.exe`.
 5. If Windows Firewall asks for access, allow Python on private networks.
 6. The browser should open automatically at `http://127.0.0.1:8765`.
 
-If the top-level launcher is not available:
+If the executable launcher is blocked or unavailable, use the fallback launcher:
 
 ```powershell
-cd dobot
-.\run.bat
+.\DOBOT UI Launcher.bat
 ```
 
 ## Auto Dependency Check
@@ -96,7 +95,8 @@ When installing Python manually, enable the option that adds Python to `PATH`.
 ## Folder Layout
 
 ```text
-dobot.v0.0.1/
+DOBOT-Nova5-Control-UI-v0.0.1.5/
+  DOBOT Nova 5 Control UI.exe
   DOBOT UI Launcher.bat
   README.md
   VERSION
@@ -104,6 +104,10 @@ dobot.v0.0.1/
   .gitattributes
   docs/
     images/
+  assets/
+    dobot.ico
+  tools/
+    launcher/
   dobot/
     run.bat
     bootstrap.py
@@ -126,10 +130,30 @@ Important folders:
 - `dobot/webui/vendor/` contains browser libraries bundled with the release.
 - `dobot/sounds/` contains local game/voice audio files.
 - `dobot/servo_control/` contains the bundled MotorControl helper.
+- `assets/dobot.ico` contains the launcher icon.
+- `tools/launcher/` contains the small launcher source used to build the `.exe`.
 - `docs/images/` contains the README screenshots.
 
 The release excludes development archives, logs, Python caches, temporary
 browser profiles, old test screenshots, and the non-runtime STEP source model.
+
+## Launcher
+
+The recommended launcher is:
+
+```text
+DOBOT Nova 5 Control UI.exe
+```
+
+It starts the portable batch launcher from the extracted folder and keeps the
+same dependency checks. The batch launcher remains available as a fallback:
+
+```text
+DOBOT UI Launcher.bat
+```
+
+The `.exe` is unsigned, so Windows may show a security prompt the first time it
+is opened.
 
 ## Network Setup
 
