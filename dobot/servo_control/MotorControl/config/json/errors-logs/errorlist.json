@@ -1,0 +1,301 @@
+[
+  {
+    "hex_code": "0x3150",
+    "title": "Overcurrent A",
+    "error_code": "Er0A0",
+    "cause": [
+      "Motor is taking too much current",
+      "Wire may be damaged or shorted",
+      "Load on motor is too heavy",
+      "Wrong settings in drive"
+    ],
+    "check": [
+      "Turn off power and check all motor wires for damage or loose connection",
+      "Make sure nothing is blocking the motor movement",
+      "Reduce the load on the motor if possible",
+      "Restart the system and check if error clears",
+      "Verify motor settings match your motor model"
+    ]
+  },
+  {
+    "hex_code": "0x3211",
+    "title": "Bus overvoltage",
+    "error_code": "Er0C0",
+    "cause": [
+      "Input power voltage is too high",
+      "Sudden stopping of motor causing voltage spike",
+      "No braking resistor installed"
+    ],
+    "check": [
+      "Check your power supply voltage using a meter",
+      "Avoid sudden stops of the motor",
+      "Install or check braking resistor if used",
+      "Turn off system, wait 1 minute, then restart"
+    ]
+  },
+  {
+    "hex_code": "0x3221",
+    "title": "Bus undervoltage",
+    "error_code": "Er0D0",
+    "cause": [
+      "Power supply voltage is too low",
+      "Loose power connection",
+      "Power supply is unstable"
+    ],
+    "check": [
+      "Check if main power is properly connected",
+      "Tighten all power cables",
+      "Ensure stable power supply",
+      "Avoid using long or low-quality wires"
+    ]
+  },
+  {
+    "hex_code": "0x3222",
+    "title": "No main power",
+    "error_code": "Er0D2",
+    "cause": [
+      "Main power is OFF",
+      "Power cable disconnected",
+      "Fuse blown"
+    ],
+    "check": [
+      "Ensure power switch is ON",
+      "Check power cable connection",
+      "Check fuse and replace if needed",
+      "Try another power source"
+    ]
+  },
+  {
+    "hex_code": "0x2218",
+    "title": "Ground short",
+    "error_code": "Er0E2",
+    "cause": [
+      "Wire touching ground",
+      "Damaged insulation",
+      "Moisture or dirt in connections"
+    ],
+    "check": [
+      "Turn OFF power immediately",
+      "Inspect wires for cuts or exposed metal",
+      "Clean connectors and keep them dry",
+      "Replace damaged cables"
+    ]
+  },
+  {
+    "hex_code": "0x4210",
+    "title": "Overheat",
+    "error_code": "Er0F0",
+    "cause": [
+      "Drive or motor is too hot",
+      "Poor ventilation",
+      "Continuous heavy usage"
+    ],
+    "check": [
+      "Turn OFF system and let it cool down",
+      "Ensure proper airflow around the drive",
+      "Clean dust from cooling fans",
+      "Reduce working load or runtime"
+    ]
+  },
+  {
+    "hex_code": "0x8301",
+    "title": "Rotor blocked",
+    "error_code": "Er102",
+    "cause": [
+      "Motor shaft is stuck",
+      "Mechanical obstruction",
+      "Load is too heavy"
+    ],
+    "check": [
+      "Turn OFF power",
+      "Try rotating motor manually",
+      "Remove any blockage",
+      "Check Break cable"
+    ]
+  },
+  {
+    "hex_code": "0x7701",
+    "title": "Regen overvoltage",
+    "error_code": "Er120",
+    "cause": [
+      "Motor stopping too quickly",
+      "Energy flowing back to drive",
+      "No braking resistor"
+    ],
+    "check": [
+      "Avoid sudden stops",
+      "Add braking resistor if needed",
+      "Adjust deceleration settings",
+      "Restart system after cooldown"
+    ]
+  },
+  {
+    "hex_code": "0x7321",
+    "title": "Encoder disconnected",
+    "error_code": "Er150",
+    "cause": [
+      "Encoder cable unplugged",
+      "Loose connection",
+      "Cable damaged"
+    ],
+    "check": [
+      "Turn OFF power",
+      "Reconnect encoder cable properly",
+      "Check pins are not bent",
+      "Replace cable if damaged"
+    ]
+  },
+  {
+    "hex_code": "0x7322",
+    "title": "Encoder communication error",
+    "error_code": "Er151",
+    "cause": [
+      "Signal interference",
+      "Loose cable",
+      "Faulty encoder"
+    ],
+    "check": [
+      "Secure all connections",
+      "Keep cables away from power lines",
+      "Use shielded cables",
+      "Restart system"
+    ]
+  },
+  {
+    "hex_code": "0x8611",
+    "title": "Position deviation",
+    "error_code": "Er180",
+    "cause": [
+      "Motor not reaching expected position",
+      "Load too high",
+      "Improper tuning"
+    ],
+    "check": [
+      "Reduce load",
+      "Check if motor is slipping",
+      "Re-tune system settings",
+      "Restart system"
+    ]
+  },
+  {
+    "hex_code": "0x8402",
+    "title": "Overspeed",
+    "error_code": "Er1A0",
+    "cause": [
+      "Motor running too fast",
+      "Wrong speed settings",
+      "Control issue"
+    ],
+    "check": [
+      "Reduce speed setting",
+      "Check controller commands",
+      "Restart system"
+    ]
+  },
+  {
+    "hex_code": "0x5441",
+    "title": "Quick stop",
+    "error_code": "Er570",
+    "cause": [
+      "Emergency stop button pressed",
+      "Safety system triggered"
+    ],
+    "check": [
+      "Release emergency stop button",
+      "Check safety switches",
+      "Restart system"
+    ]
+  },
+  {
+    "hex_code": "0x8201",
+    "title": "Communication error",
+    "error_code": "Er801",
+    "cause": [
+      "Controller not connected",
+      "Cable issue",
+      "Wrong communication settings"
+    ],
+    "check": [
+      "Check communication cable",
+      "Reconnect controller",
+      "Verify settings",
+      "Restart both devices"
+    ]
+  },
+  {
+    "hex_code": "0x821B",
+    "title": "Timeout",
+    "error_code": "Er81b",
+    "cause": [
+      "EtherCAT SyncManager watchdog timeout",
+      "Network interruption or unstable link",
+      "Drive did not receive valid PDO data in time"
+    ],
+    "check": [
+      "Check EtherCAT cable and connectors",
+      "Restart the controller and drives",
+      "Ensure network is stable and not overloaded",
+      "Try reducing traffic or update cycle time"
+    ]
+  },
+  {
+    "hex_code": "0x7325",
+    "title": "Multiturn encoder error",
+    "error_code": "Er153",
+    "cause": [
+      "Encoder battery or multiturn data error",
+      "Encoder initialization failure"
+    ],
+    "check": [
+      "Power OFF and ON the drive",
+      "Run Reset Error (special clear needed)",
+      "Check encoder cable and battery",
+      "If repeated, replace encoder"
+    ]
+  },
+  {
+    "hex_code": "0x8311",
+    "title": "Motor overload",
+    "error_code": "Er100",
+    "cause": [
+      "Motor load is too high",
+      "Motor running above rated torque"
+    ],
+    "check": [
+      "Reduce the mechanical load",
+      "Check for binding or obstruction",
+      "Allow motor to cool",
+      "Verify motor sizing and tuning"
+    ]
+  },
+  {
+    "hex_code": "0x8310",
+    "title": "Driver overload",
+    "error_code": "Er101",
+    "cause": [
+      "Drive is overloaded or overheated",
+      "Continuous heavy duty cycle"
+    ],
+    "check": [
+      "Reduce duty cycle or load",
+      "Improve ventilation",
+      "Check fan and heat sink",
+      "Restart after cooldown"
+    ]
+  },
+  {
+    "hex_code": "0x8401",
+    "title": "Vibration",
+    "error_code": "Er190",
+    "cause": [
+      "Mechanical vibration detected",
+      "Loose coupling or mounting"
+    ],
+    "check": [
+      "Check motor coupling and mounts",
+      "Tighten mechanical parts",
+      "Reduce speed/accel if needed",
+      "Re-tune servo parameters"
+    ]
+  }
+]

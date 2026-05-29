@@ -1,0 +1,53 @@
+{
+    "speed": {
+        "movement_speed": {
+            "velocity": 125000,
+            "acceleration": 62500,
+            "deceleration": 62500,
+            "csp_max_step": 100
+        }
+    },
+    "slaves": {
+        "count": 1,
+        "names": ["Movement 1"],
+        "movement_slaves": [0]
+    },
+    "positions": {
+        "home_pos_M": [0],
+        "pos_pos": [0.35],
+        "pos_neg": [-0.35]
+    },
+    "template": {
+        "name": "Single Motor Bidirectional Sequence",
+        "description": "Single motor movement: 0 → 0.35 → -0.35 → 0",
+        "loop": false,
+        "loop_count": 1,
+        "operation_mode": "movement",
+        "steps": [
+            {
+                "name": "Home",
+                "type": "home",
+                "position": "home_pos_M",
+                "delay": 1
+            },
+            {
+                "name": "Move to +0.35",
+                "type": "movement",
+                "position": "pos_pos",
+                "delay": 1
+            },
+            {
+                "name": "Move to -0.35",
+                "type": "movement",
+                "position": "pos_neg",
+                "delay": 1
+            },
+            {
+                "name": "Return to Home",
+                "type": "home",
+                "position": "home_pos_M",
+                "delay": 1
+            }
+        ]
+    }
+}

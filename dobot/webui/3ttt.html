@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DOBOT 3TTT</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="/game.css">
+  </head>
+  <body>
+    <main class="game-shell">
+      <button class="game-exit" id="close-button" type="button">Back</button>
+      <button class="game-fullscreen" id="fullscreen-button" type="button">Fullscreen</button>
+
+      <section class="stage-panel active" id="name-stage">
+        <div class="stage-card stage-card-wide">
+          <div class="name-stage-layout">
+            <aside class="leaderboard-panel">
+              <p class="eyebrow">Leaderboard</p>
+              <h2>Top Players</h2>
+              <div class="leaderboard-list" id="leaderboard-list"></div>
+            </aside>
+            <div class="name-entry-panel">
+              <p class="eyebrow">Player</p>
+              <h1>Enter your name</h1>
+              <div class="name-display" id="player-name-display">_</div>
+              <div class="keyboard-grid" id="keyboard-grid"></div>
+              <div class="name-actions">
+                <button class="action-btn secondary" id="keyboard-backspace-button" type="button">Backspace</button>
+                <button class="action-btn secondary" id="keyboard-space-button" type="button">Space</button>
+                <button class="action-btn primary" id="name-next-button" type="button">Next</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stage-panel" id="setup-stage">
+        <div class="stage-card stage-card-medium">
+          <p class="eyebrow">Setup</p>
+          <h1>Choose your game</h1>
+
+          <div class="setup-group">
+            <span class="setup-label">Marker</span>
+            <div class="choice-row" id="marker-choice-row">
+              <button class="choice-chip" data-marker="X" type="button">Play as X</button>
+              <button class="choice-chip" data-marker="O" type="button">Play as O</button>
+            </div>
+          </div>
+
+          <div class="setup-group">
+            <span class="setup-label">Difficulty</span>
+            <div class="difficulty-grid" id="difficulty-grid">
+              <button class="difficulty-card" data-difficulty="easy" type="button">
+                <strong>Easy</strong>
+                <span>Relaxed play</span>
+              </button>
+              <button class="difficulty-card active" data-difficulty="medium" type="button">
+                <strong>Medium</strong>
+                <span>Balanced play</span>
+              </button>
+              <button class="difficulty-card" data-difficulty="hard" type="button">
+                <strong>Hard</strong>
+                <span>Best moves</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="setup-summary" id="setup-summary"></div>
+          <div class="setup-actions">
+            <button class="action-btn secondary" id="setup-back-button" type="button">Back</button>
+            <button class="action-btn primary" id="start-game-button" type="button">Start</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="stage-panel" id="play-stage">
+        <div class="play-layout">
+          <header class="play-header">
+            <div>
+              <p class="eyebrow">Tic-Tac-Toe</p>
+              <h1 id="play-title">Your turn</h1>
+            </div>
+            <div class="play-meta">
+              <div class="meta-chip">
+                <span class="meta-label">Player</span>
+                <strong id="meta-player-name">-</strong>
+              </div>
+              <div class="meta-chip">
+                <span class="meta-label">Marker</span>
+                <strong id="meta-player-marker">-</strong>
+              </div>
+              <div class="meta-chip">
+                <span class="meta-label">Difficulty</span>
+                <strong id="meta-difficulty">-</strong>
+              </div>
+            </div>
+          </header>
+
+          <div class="board-wrap">
+            <div class="touch-board" id="touch-board">
+              <button class="touch-cell" type="button" data-cell="A1"></button>
+              <button class="touch-cell" type="button" data-cell="A2"></button>
+              <button class="touch-cell" type="button" data-cell="A3"></button>
+              <button class="touch-cell" type="button" data-cell="B1"></button>
+              <button class="touch-cell center" type="button" data-cell="B2"></button>
+              <button class="touch-cell" type="button" data-cell="B3"></button>
+              <button class="touch-cell" type="button" data-cell="C1"></button>
+              <button class="touch-cell" type="button" data-cell="C2"></button>
+              <button class="touch-cell" type="button" data-cell="C3"></button>
+            </div>
+          </div>
+
+          <div class="play-footer">
+            <p id="turn-note">Press Start to begin.</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="result-overlay" id="result-overlay">
+        <div class="result-card" id="result-card">
+          <div class="result-burst"></div>
+          <p class="eyebrow">Round Complete</p>
+          <h2 id="result-title">You Win</h2>
+          <p id="result-copy">The robot returned to home.</p>
+          <div class="result-actions">
+            <button class="action-btn primary" id="restart-button" type="button">Restart</button>
+            <button class="action-btn secondary" id="result-back-button" type="button">New Game</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="/3ttt.js"></script>
+  </body>
+</html>

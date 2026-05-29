@@ -1,0 +1,1149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DOBOT Nova Controller</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="/styles.css?v=20260528-render-quality-hidden">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">N</div>
+        <div class="brand-text">
+          <p class="eyebrow">TCP/IP Secondary Development</p>
+          <h1>DOBOT Nova Controller</h1>
+        </div>
+      </div>
+      <div class="topbar-chips">
+        <div class="chip">
+          <span class="chip-label">Drag</span>
+          <strong class="chip-value" id="drag-chip">Off</strong>
+          <button class="chip-button" id="drag-toggle-button" type="button">Enable Drag</button>
+        </div>
+        <div class="chip">
+          <span class="chip-label">Robot</span>
+          <strong class="chip-value" id="robot-host-chip">192.168.0.110</strong>
+        </div>
+        <div class="chip">
+          <span class="chip-dot" id="conn-dot"></span>
+          <span class="chip-label">Link</span>
+          <strong class="chip-value" id="connection-chip">Disconnected</strong>
+        </div>
+        <div class="chip">
+          <span class="chip-label">Mode</span>
+          <strong class="chip-value" id="mode-chip">Unknown</strong>
+        </div>
+        <div class="chip">
+          <span class="chip-label">Motion</span>
+          <strong class="chip-value" id="motion-chip">Blocked</strong>
+        </div>
+        <button class="btn btn-sm" id="theme-toggle-button" type="button">Light</button>
+        <button class="btn btn-sm" id="games-button" type="button">Games</button>
+        <button class="btn btn-sm" id="refresh-button" type="button">Refresh</button>
+      </div>
+    </header>
+
+    <main class="workspace" id="workspace">
+      <aside class="col col-left">
+        <button class="btn left-drawer-tab" id="connection-drawer-tab" type="button" aria-label="Open connection panel">☰</button>
+        <div class="card" id="connection-card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <p class="eyebrow">Connection</p>
+              <h2>Robot Link &amp; State</h2>
+            </div>
+            <button class="btn btn-sm collapse-toggle" id="connection-collapse-button" type="button" aria-expanded="true" aria-controls="connection-card">☰</button>
+          </div>
+          <div class="card-body" id="connection-card-body">
+            <div class="form-grid connection-grid">
+              <label>
+                <span>Robot IP</span>
+                <input id="host-input" type="text" value="192.168.0.110">
+              </label>
+              <label>
+                <span>Dashboard Port</span>
+                <input id="dashboard-port-input" type="number" value="29999">
+              </label>
+              <label>
+                <span>Motion Port</span>
+                <input id="motion-port-input" type="number" value="30003">
+              </label>
+              <label>
+                <span>Timeout (s)</span>
+                <input id="timeout-input" type="number" min="0.5" step="0.5" value="3">
+              </label>
+            </div>
+
+            <div class="btn-group link-state-actions">
+              <button class="btn btn-primary btn-full" id="connect-button" type="button">Connect Controller</button>
+              <div class="btn-row connection-actions">
+                <button class="btn btn-full" id="search-button" type="button">Search Robots</button>
+                <button class="btn btn-full" id="disconnect-button" type="button">Disconnect</button>
+              </div>
+              <button class="btn btn-full" id="recover-button" type="button">Recover Controller</button>
+            </div>
+
+            <div id="connection-note" class="connection-note">No active controller connection.</div>
+
+            <div class="device-panel">
+              <div class="device-panel-header">
+                <span>Detected Robots</span>
+                <span id="search-status">No scan yet</span>
+              </div>
+              <div id="device-list" class="device-list"></div>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <div class="btn-group link-state-actions">
+              <button class="btn btn-enable btn-full" id="toggle-enable-button" type="button">Enable Motion</button>
+              <div class="btn-row state-actions">
+                <button class="btn btn-full" id="power-button" type="button">Power Robot</button>
+                <button class="btn btn-danger btn-full" id="clear-error-button" type="button">Clear Error</button>
+              </div>
+            </div>
+
+            <div class="slider-block">
+              <span class="field-label">Global Speed</span>
+              <div class="slider-wrap">
+                <input id="speed-factor-input" type="range" min="1" max="100" value="20">
+                <span class="slider-value" id="speed-display">20%</span>
+              </div>
+              <button class="btn btn-full" id="speed-factor-button" type="button">Apply Speed</button>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <div class="diag-list">
+              <div class="diag-row">
+                <span class="diag-key">Robot Mode</span>
+                <strong class="diag-val" id="diag-mode">-</strong>
+              </div>
+              <div class="diag-row">
+                <span class="diag-key">Pose</span>
+                <strong class="diag-val" id="diag-pose">-</strong>
+              </div>
+              <div class="diag-row">
+                <span class="diag-key">Angles</span>
+                <strong class="diag-val" id="diag-angle">-</strong>
+              </div>
+              <div class="diag-row">
+                <span class="diag-key">Error</span>
+                <strong class="diag-val" id="diag-error">-</strong>
+              </div>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <div class="diag-list">
+              <div class="diag-row">
+                <span class="diag-key">Dashboard</span>
+                <strong class="diag-val accent-val">29999</strong>
+              </div>
+              <div class="diag-row">
+                <span class="diag-key">Motion</span>
+                <strong class="diag-val accent-val">30003</strong>
+              </div>
+              <div class="diag-row">
+                <span class="diag-key">Feedback</span>
+                <strong class="diag-val accent-val">30004</strong>
+              </div>
+              <div class="diag-row">
+                <span class="diag-key">Protocol</span>
+                <strong class="diag-val">TCP/IP</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+      <section class="col col-main">
+        <div class="center-view active" id="center-dashboard-view">
+          <div class="main-row">
+            <div class="card live-card">
+              <div class="card-header">
+                <div class="card-header-left">
+                  <p class="eyebrow">Robot</p>
+                  <h2>Live View</h2>
+                </div>
+                <div class="status-row">
+                  <span class="dot" id="live-dot"></span>
+                  <span id="visual-status">Awaiting first poll</span>
+                </div>
+              </div>
+              <div class="robot-stage">
+                <div class="robot-cad-viewer" id="robot-cad-viewer">
+                  <canvas id="robot-cad-canvas" aria-label="DOBOT Nova 5 CAD live view"></canvas>
+                  <div class="robot-cad-overlay">
+                    <div id="cad-pose-label">TCP pose unavailable</div>
+                    <div id="cad-joint-label">Mode Unknown</div>
+                    <div id="cad-joint-label-2">J1 0.0 J2 0.0 J3 0.0 J4 0.0 J5 0.0 J6 0.0</div>
+                  </div>
+                  <div class="robot-cad-status" id="robot-cad-status">Loading Nova 5 CAD model</div>
+                </div>
+                <svg id="robot-svg" class="robot-svg-fallback" viewBox="0 0 760 400" aria-label="Fallback robot visual" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="armGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#1a8fff"></stop>
+                      <stop offset="100%" stop-color="#00e5c3"></stop>
+                    </linearGradient>
+                  </defs>
+                  <g id="grid-layer" opacity="0.18"></g>
+                  <g id="shadow-layer"></g>
+                  <g id="arm-layer">
+                    <path id="base-column" class="robot-base" d=""></path>
+                    <line id="link-1" class="robot-link" x1="0" y1="0" x2="0" y2="0"></line>
+                    <line id="link-2" class="robot-link" x1="0" y1="0" x2="0" y2="0"></line>
+                    <line id="link-3" class="robot-link" x1="0" y1="0" x2="0" y2="0"></line>
+                    <line id="link-4" class="robot-link robot-wrist-link" x1="0" y1="0" x2="0" y2="0"></line>
+                    <line id="tool-link" class="robot-tool" x1="0" y1="0" x2="0" y2="0"></line>
+                    <circle id="joint-0" class="robot-joint major" r="18"></circle>
+                    <circle id="joint-1" class="robot-joint" r="16"></circle>
+                    <circle id="joint-2" class="robot-joint" r="14"></circle>
+                    <circle id="joint-3" class="robot-joint" r="12"></circle>
+                    <circle id="joint-4" class="robot-joint wrist" r="10"></circle>
+                    <circle id="joint-5" class="robot-joint wrist" r="9"></circle>
+                    <circle id="joint-6" class="robot-joint wrist" r="8"></circle>
+                    <circle id="tool-point" class="robot-tool-point" r="9"></circle>
+                    <circle id="tool-halo" class="robot-tool-halo" r="22"></circle>
+                  </g>
+                  <g id="axis-layer"></g>
+                  <g id="joint-value-layer"></g>
+                  <g id="label-layer">
+                    <text id="pose-label" x="20" y="30" class="overlay-label"></text>
+                    <text id="joint-label" x="20" y="50" class="overlay-sub"></text>
+                    <text id="joint-label-2" x="20" y="68" class="overlay-sub"></text>
+                  </g>
+                </svg>
+              </div>
+            </div>
+
+            <div class="card log-card">
+              <div class="card-header">
+                <div class="card-header-left">
+                  <p class="eyebrow">Activity</p>
+                  <h2>Event Log</h2>
+                </div>
+                <button class="btn btn-sm" id="clear-log-button" type="button">Clear</button>
+              </div>
+              <div id="log-output" class="log-output"></div>
+            </div>
+          </div>
+
+          <div class="telemetry-sequence-row">
+            <div class="card sequence-card">
+              <div class="card-header">
+                <div class="card-header-left">
+                  <p class="eyebrow">Sequence</p>
+                  <h2>Recorded Steps</h2>
+                </div>
+                <div class="status-row">
+                  <span class="dot" id="sequence-dot"></span>
+                  <span id="sequence-status">No steps yet</span>
+                </div>
+              </div>
+              <div class="card-body">
+                <label>
+                  <span>Step Name</span>
+                  <input id="sequence-name-input" type="text" placeholder="Home">
+                </label>
+
+                <div class="sequence-controls">
+                  <button class="btn btn-primary btn-full" id="sequence-add-button" type="button">Add Current Position</button>
+                  <div class="btn-row">
+                    <button class="btn btn-full" id="sequence-move-selected-button" type="button">Move To Selected</button>
+                    <button class="btn btn-full" id="sequence-replace-selected-button" type="button">Replace Selected</button>
+                  </div>
+                  <div class="btn-row">
+                    <button class="btn btn-full" id="sequence-play-once-button" type="button">Play Once</button>
+                    <button class="btn btn-full" id="sequence-loop-button" type="button">Loop</button>
+                  </div>
+                  <div class="btn-row">
+                    <button class="btn btn-danger btn-full" id="sequence-stop-button" type="button">Stop</button>
+                    <button class="btn btn-full" id="sequence-new-button" type="button">New Sequence</button>
+                  </div>
+                </div>
+
+                <div id="sequence-list" class="sequence-list"></div>
+              </div>
+            </div>
+
+            <div class="card home-position-card">
+              <div class="card-header">
+                <div class="card-header-left">
+                  <p class="eyebrow">Home</p>
+                  <h2>Saved Position</h2>
+                </div>
+                <div class="status-row">
+                  <span class="dot" id="home-position-dot"></span>
+                  <span id="home-position-status">Not set</span>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="home-position-meta">
+                  <div id="home-position-pose" class="home-position-line">Pose unavailable</div>
+                  <div id="home-position-joints" class="home-position-line">No saved home position.</div>
+                </div>
+                <div class="sequence-controls">
+                  <div class="btn-row">
+                    <button class="btn btn-primary btn-full" id="home-position-set-button" type="button">Set</button>
+                    <button class="btn btn-full" id="home-position-move-button" type="button">Move</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="center-view" id="center-games-menu-view">
+          <div class="card game-shell-card">
+            <div class="card-header">
+              <div class="card-header-left">
+                <p class="eyebrow">Games</p>
+                <h2>Game Menu</h2>
+              </div>
+              <button class="btn btn-sm" id="games-close-button" type="button">Back To Controls</button>
+            </div>
+            <div class="card-body game-shell-body">
+              <div class="game-hero">
+                <p class="game-kicker">Robot Playground</p>
+                <h3>Pick a game workflow for the center panel.</h3>
+                <p>Left and right robot controls stay available. Only this center workspace changes.</p>
+              </div>
+              <div class="games-grid">
+                <button class="game-tile game-tile-primary" id="game-coffee-button" type="button">
+                  <span class="game-tile-eyebrow">New</span>
+                  <strong>Coffee Machine</strong>
+                  <span>Plan the customer screen, cup workflow, machine buttons, and delivery flow for the Nestle setup.</span>
+                </button>
+                <button class="game-tile game-tile-primary" id="game-tictactoe-button" type="button">
+                  <span class="game-tile-eyebrow">Ready</span>
+                  <strong>Tic-Tac-Toe</strong>
+                  <span>Open the first game setup page and plan board calibration, turn logic, and robot actions.</span>
+                </button>
+                <button class="game-tile game-tile-primary" id="game-3ttt-button" type="button">
+                  <span class="game-tile-eyebrow">Planning</span>
+                  <strong>3TTT</strong>
+                  <span>Run multiple tic-tac-toe boards with one priority queue and OSC board-position handoff.</span>
+                </button>
+                <button class="game-tile game-tile-primary" id="game-chess-button" type="button">
+                  <span class="game-tile-eyebrow">New</span>
+                  <strong>Chess</strong>
+                  <span>Map a full chess board and launch a guided legal-move player screen for DOBOT turns.</span>
+                </button>
+                <button class="game-tile game-tile-primary" id="game-osc-c-button" type="button">
+                  <span class="game-tile-eyebrow">OSC</span>
+                  <strong>OSC_C</strong>
+                  <span>Map custom OSC messages to named multi-step sequences, with preview testing before live DOBOT motion.</span>
+                </button>
+                <button class="game-tile" type="button" disabled>
+                  <span class="game-tile-eyebrow">Later</span>
+                  <strong>Simon / Memory</strong>
+                  <span>Placeholder for pattern replay and reaction games.</span>
+                </button>
+                <button class="game-tile" type="button" disabled>
+                  <span class="game-tile-eyebrow">Later</span>
+                  <strong>Custom Game</strong>
+                  <span>Placeholder for a free-form programmable game page.</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="center-view" id="center-coffee-view">
+          <div class="card game-shell-card">
+            <div class="card-header">
+              <div class="card-header-left">
+                <p class="eyebrow">Coffee</p>
+                <h2>Coffee Machine Setup</h2>
+              </div>
+              <div class="games-header-actions">
+                <button class="btn btn-sm" id="coffee-back-button" type="button">Back To Menu</button>
+                <button class="btn btn-sm" id="coffee-close-button" type="button">Back To Controls</button>
+              </div>
+            </div>
+            <div class="card-body game-shell-body">
+              <div class="coffee-setup-grid">
+                <div class="game-page-main">
+                  <div class="coffee-top-compact-grid">
+                    <div class="game-plan-card coffee-compact-card">
+                      <p class="game-kicker">Launch Setup</p>
+                      <div class="ttt-setup-fields">
+                        <label>
+                          <span>Display</span>
+                          <select id="coffee-display-select">
+                            <option value="current">Current Screen</option>
+                            <option value="secondary">Secondary Screen</option>
+                          </select>
+                        </label>
+                        <label>
+                          <span>Tool</span>
+                          <select id="coffee-gripper-select">
+                            <option value="two_finger">Two-Finger Gripper</option>
+                            <option value="soft">Soft Gripper</option>
+                            <option value="suction">Suction Tool</option>
+                          </select>
+                        </label>
+                      </div>
+                      <div class="sequence-controls">
+                      <button class="btn btn-primary btn-full" id="coffee-launch-button" type="button">Launch</button>
+                      <button class="btn btn-full" id="coffee-orders-button" type="button">Order List</button>
+                      <div class="btn-row">
+                        <button class="btn btn-full" id="coffee-save-setup-button" type="button">Save Setup</button>
+                        <button class="btn btn-full" id="coffee-load-setup-button" type="button">Load Saved</button>
+                      </div>
+                      <button class="btn btn-full" id="coffee-reset-mapping-button" type="button">Clear All Mappings</button>
+                    </div>
+                  </div>
+
+                    <div class="game-plan-card coffee-compact-card">
+                      <p class="game-kicker">Recipe Timing</p>
+                      <div class="coffee-recipe-list" id="coffee-recipe-list"></div>
+                    </div>
+                  </div>
+
+                  <div class="game-plan-card ttt-status-card">
+                    <div class="ttt-mapping-summary">
+                      <div>
+                        <p class="game-kicker">Mapped</p>
+                        <strong id="coffee-mapping-progress">0 / 2 anchors | 0 / 9 sequences</strong>
+                      </div>
+                      <div>
+                        <p class="game-kicker">Status</p>
+                        <strong id="coffee-readiness-label">Waiting for mapping</strong>
+                      </div>
+                    </div>
+                    <p class="ttt-helper-text" id="coffee-live-position-note">Connect robot for live capture.</p>
+                  </div>
+
+                  <div class="game-plan-card">
+                    <p class="game-kicker">Anchor Positions</p>
+                    <div class="ttt-anchor-grid" id="coffee-anchor-grid"></div>
+                  </div>
+
+                  <div class="game-plan-card">
+                    <p class="game-kicker">Cup Flow</p>
+                    <div class="coffee-target-grid" id="coffee-target-grid"></div>
+                  </div>
+
+                  <div class="game-plan-card">
+                    <p class="game-kicker">Machine Buttons</p>
+                    <div class="coffee-button-grid" id="coffee-button-grid"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="center-view" id="center-3ttt-view">
+          <div class="card game-shell-card">
+            <div class="card-header">
+              <div class="card-header-left">
+                <p class="eyebrow">Games</p>
+                <h2>3TTT Setup</h2>
+              </div>
+              <div class="games-header-actions">
+                <button class="btn btn-sm" id="three-ttt-back-button" type="button">Back To Menu</button>
+                <button class="btn btn-sm" id="three-ttt-close-button" type="button">Back To Controls</button>
+              </div>
+            </div>
+            <div class="card-body game-shell-body">
+              <div class="game-page-grid ttt-setup-grid">
+                <div class="game-page-main">
+                  <div class="game-plan-card ttt-status-card">
+                    <div class="ttt-mapping-summary">
+                      <div>
+                        <p class="game-kicker">Status</p>
+                        <strong id="three-ttt-readiness-label">Map selected board first</strong>
+                      </div>
+                      <div>
+                        <p class="game-kicker">Priority</p>
+                        <strong id="three-ttt-priority-label">Board 2 -> Board 1 -> Board 3</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="game-plan-card">
+                    <p class="game-kicker">Map Physical Board</p>
+                    <div class="ttt-setup-fields three-ttt-map-fields">
+                      <label>
+                        <span>Board</span>
+                        <select id="three-ttt-map-board-select"></select>
+                      </label>
+                      <label>
+                        <span>Player Label</span>
+                        <input id="three-ttt-board-label-input" type="text" value="Player 1">
+                      </label>
+                      <label>
+                        <span>OSC Board No.</span>
+                        <input id="three-ttt-board-osc-name-input" type="text" value="1">
+                      </label>
+                    </div>
+                    <p class="ttt-helper-text" id="three-ttt-mapping-progress">0 / 11 mapped</p>
+                    <div class="ttt-anchor-grid" id="three-ttt-anchor-grid"></div>
+                    <div class="ttt-board-map-grid" id="three-ttt-board-map-grid"></div>
+                  </div>
+                </div>
+
+                <div class="game-page-side">
+                  <div class="game-plan-card ttt-setup-card three-ttt-setup-card">
+                    <p class="game-kicker">Launch Setup</p>
+                    <div class="ttt-setup-fields">
+                      <label>
+                        <span>Display</span>
+                        <select id="three-ttt-display-select">
+                          <option value="current">Current Screen</option>
+                          <option value="secondary">Secondary Screen</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Board Screen</span>
+                        <select id="three-ttt-launch-board-select"></select>
+                      </label>
+                      <label>
+                        <span>Boards</span>
+                        <select id="three-ttt-board-count-select">
+                          <option value="1">1 Board</option>
+                          <option value="2">2 Boards</option>
+                          <option value="3">3 Boards</option>
+                          <option value="4">4 Boards</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Priority</span>
+                        <select id="three-ttt-priority-select">
+                          <option value="center_first">Board 2 First</option>
+                          <option value="left_first">Board 1 First</option>
+                          <option value="right_first">Board 3 First</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Robot Motion</span>
+                        <select id="three-ttt-robot-mode-select">
+                          <option value="preview">Preview Only</option>
+                          <option value="servo">Direct Servo + DOBOT</option>
+                          <option value="api">OSC + DOBOT</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div class="sequence-controls">
+                      <button class="btn btn-full" id="three-ttt-map-board-window-button" type="button">Map Board Screen</button>
+                      <button class="btn btn-primary btn-full" id="three-ttt-launch-button" type="button">Launch Selected Board</button>
+                      <div class="btn-row">
+                        <button class="btn btn-full" id="three-ttt-save-setup-button" type="button">Save Setup</button>
+                        <button class="btn btn-full" id="three-ttt-load-setup-button" type="button">Load Saved</button>
+                      </div>
+                      <button class="btn btn-full" id="three-ttt-reset-mapping-button" type="button">Clear All Mappings</button>
+                    </div>
+                  </div>
+
+                  <div class="game-plan-card ttt-setup-card three-ttt-servo-card" id="three-ttt-servo-card">
+                    <div class="three-ttt-servo-header">
+                      <div>
+                        <p class="game-kicker">Servo Mapping</p>
+                        <strong id="three-ttt-servo-status-label">Not checked</strong>
+                      </div>
+                      <button class="btn btn-sm" id="three-ttt-servo-refresh-button" type="button">Start / Refresh</button>
+                    </div>
+                    <div class="three-ttt-servo-grid">
+                      <div>
+                        <span>Template</span>
+                        <strong id="three-ttt-servo-template-label">-</strong>
+                      </div>
+                      <div>
+                        <span>Limits</span>
+                        <strong id="three-ttt-servo-limits-label">-</strong>
+                      </div>
+                      <div>
+                        <span>Position</span>
+                        <strong id="three-ttt-servo-position-label">-</strong>
+                      </div>
+                      <div>
+                        <span>Speed</span>
+                        <strong id="three-ttt-servo-speed-label">-</strong>
+                      </div>
+                    </div>
+                    <div class="three-ttt-servo-board-list" id="three-ttt-servo-board-list"></div>
+                    <div class="sequence-controls">
+                      <button class="btn btn-danger btn-full" id="three-ttt-servo-stop-button" type="button">STOP</button>
+                      <button class="btn btn-full" id="three-ttt-servo-disable-button" type="button">Disable Servo</button>
+                      <button class="btn btn-full" id="three-ttt-servo-reset-button" type="button">Reset Fault</button>
+                      <button class="btn btn-full" id="three-ttt-servo-enable-button" type="button">Enable Servo</button>
+                      <button class="btn btn-full" id="three-ttt-servo-move-button" type="button">Move Selected Board</button>
+                    </div>
+                    <p class="ttt-helper-text" id="three-ttt-servo-message">Choose Direct Servo + DOBOT, then refresh.</p>
+                  </div>
+
+                  <div class="game-plan-card ttt-setup-card three-ttt-setup-card">
+                    <p class="game-kicker">OSC Settings</p>
+                    <div class="ttt-setup-fields three-ttt-advanced-fields">
+                      <label>
+                        <span>Host</span>
+                        <input id="three-ttt-osc-host-input" type="text" value="127.0.0.1">
+                      </label>
+                      <label>
+                        <span>Send Port</span>
+                        <input id="three-ttt-osc-send-port-input" type="number" min="1" max="65535" value="9000">
+                      </label>
+                      <label>
+                        <span>Listen Port</span>
+                        <input id="three-ttt-osc-listen-port-input" type="number" min="1" max="65535" value="9001">
+                      </label>
+                      <label>
+                        <span>Send Base</span>
+                        <input id="three-ttt-osc-goto-address-input" type="text" value="/board">
+                      </label>
+                      <label>
+                        <span>Reached Base</span>
+                        <input id="three-ttt-osc-reached-address-input" type="text" value="/reached">
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="center-view" id="center-chess-view">
+          <div class="card game-shell-card">
+            <div class="card-header">
+              <div class="card-header-left">
+                <p class="eyebrow">Games</p>
+                <h2>Chess Setup</h2>
+              </div>
+              <div class="games-header-actions">
+                <button class="btn btn-sm" id="chess-back-button" type="button">Back To Menu</button>
+                <button class="btn btn-sm" id="chess-close-button" type="button">Back To Controls</button>
+              </div>
+            </div>
+            <div class="card-body game-shell-body">
+              <div class="game-page-grid chess-setup-grid">
+                <div class="game-page-main">
+                  <div class="game-plan-card ttt-status-card">
+                    <div class="ttt-mapping-summary">
+                      <div>
+                        <p class="game-kicker">Mapped</p>
+                        <strong id="chess-mapping-progress">0 / 67 mapped</strong>
+                      </div>
+                      <div>
+                        <p class="game-kicker">Status</p>
+                        <strong id="chess-readiness-label">Waiting for mapping</strong>
+                      </div>
+                    </div>
+                    <p class="ttt-helper-text" id="chess-live-position-note">Connect robot to record positions.</p>
+                  </div>
+
+                  <div class="game-plan-card">
+                    <p class="game-kicker">Shared Robot Positions</p>
+                    <div class="ttt-anchor-grid chess-anchor-grid" id="chess-anchor-grid"></div>
+                  </div>
+
+                  <div class="game-plan-card">
+                    <div class="chess-map-head">
+                      <div>
+                        <p class="game-kicker">Board Squares</p>
+                        <strong>Selected <span id="chess-selected-square-label">E2</span></strong>
+                      </div>
+                      <p class="ttt-helper-text">Click a square, then record or test it below.</p>
+                    </div>
+                    <div class="chess-board-target-layout">
+                      <div class="chess-board-map-grid" id="chess-board-map-grid"></div>
+                      <div class="chess-selected-target-panel">
+                        <p class="game-kicker">Selected Square Target</p>
+                        <div id="chess-selected-square-card"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div class="game-page-side">
+                  <div class="game-plan-card ttt-setup-card">
+                    <p class="game-kicker">Launch Setup</p>
+                    <div class="ttt-setup-fields">
+                      <label>
+                        <span>Display</span>
+                        <select id="chess-display-select">
+                          <option value="current">Current Screen</option>
+                          <option value="secondary">Secondary Screen</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Robot Motion</span>
+                        <select id="chess-robot-mode-select">
+                          <option value="preview">Preview Only</option>
+                          <option value="api">DOBOT + Shared Queue</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Mapping Source</span>
+                        <select id="chess-mapping-source-select">
+                          <option value="manual">Manual Mapping</option>
+                          <option value="calibrated">Calibrated Mapping</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Player Color</span>
+                        <select id="chess-player-color-select">
+                          <option value="white">White</option>
+                          <option value="black">Black</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Difficulty</span>
+                        <select id="chess-difficulty-select">
+                          <option value="easy">Easy</option>
+                          <option value="medium">Medium</option>
+                          <option value="hard">Hard</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Pick/Place Dwell (ms)</span>
+                        <input id="chess-dwell-input" type="number" min="100" max="3000" step="50" value="450">
+                      </label>
+                    </div>
+                    <div class="sequence-controls">
+                      <button class="btn btn-full" id="chess-map-board-button" type="button">Map Board Screen</button>
+                      <button class="btn btn-primary btn-full" id="chess-launch-button" type="button">Launch Chess Screen</button>
+                      <div class="btn-row">
+                        <button class="btn btn-full" id="chess-save-setup-button" type="button">Save Setup</button>
+                        <button class="btn btn-full" id="chess-load-setup-button" type="button">Load Saved</button>
+                      </div>
+                      <button class="btn btn-full" id="chess-reset-mapping-button" type="button">Clear All Mappings</button>
+                    </div>
+                  </div>
+
+                  <div class="game-plan-card chess-calibration-card">
+                    <div class="chess-calibration-head">
+                      <div>
+                        <p class="game-kicker">Calibration Mapping</p>
+                        <strong id="chess-calibration-status">0 / 12 samples</strong>
+                      </div>
+                    </div>
+                    <div class="chess-calibration-grid" id="chess-calibration-grid"></div>
+                    <div class="sequence-controls">
+                      <button class="btn btn-full" id="chess-generate-calibration-button" type="button">Generate Board Mapping</button>
+                      <button class="btn btn-primary btn-full" id="chess-auto-record-button" type="button">Auto Record Through Anchor</button>
+                      <button class="btn btn-full" id="chess-auto-record-stop-button" type="button">Stop Auto Record</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="center-view" id="center-osc-c-view">
+          <div class="card game-shell-card">
+            <div class="card-header">
+              <div class="card-header-left">
+                <p class="eyebrow">Games</p>
+                <h2>OSC_C</h2>
+              </div>
+              <div class="games-header-actions">
+                <button class="btn btn-sm" id="osc-c-back-button" type="button">Back To Menu</button>
+                <button class="btn btn-sm" id="osc-c-close-button" type="button">Back To Controls</button>
+              </div>
+            </div>
+            <div class="card-body game-shell-body">
+              <div class="game-page-grid osc-c-setup-grid">
+                <div class="game-page-main">
+                  <div class="game-plan-card ttt-status-card">
+                    <div class="ttt-mapping-summary">
+                      <div>
+                        <p class="game-kicker">Listener</p>
+                        <strong id="osc-c-listener-label">Disabled</strong>
+                      </div>
+                      <div>
+                        <p class="game-kicker">Mode</p>
+                        <strong id="osc-c-mode-label">Preview</strong>
+                      </div>
+                      <div>
+                        <p class="game-kicker">Runtime</p>
+                        <strong id="osc-c-runtime-label">Idle</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="game-plan-card">
+                    <div class="osc-c-section-head">
+                      <div>
+                        <p class="game-kicker">Sequence Library</p>
+                        <strong>Named Sequences</strong>
+                      </div>
+                      <div class="osc-c-inline-add">
+                        <input id="osc-c-new-sequence-input" type="text" placeholder="Sequence 2">
+                        <button class="btn btn-sm" id="osc-c-add-sequence-button" type="button">Add</button>
+                      </div>
+                    </div>
+                    <div class="osc-c-list" id="osc-c-sequence-list"></div>
+                  </div>
+
+                  <div class="game-plan-card">
+                    <div class="osc-c-section-head">
+                      <div>
+                        <p class="game-kicker">Selected Sequence</p>
+                        <strong id="osc-c-selected-title">Sequence 1</strong>
+                      </div>
+                      <span class="coffee-routine-count" id="osc-c-step-count-label">0 step(s)</span>
+                    </div>
+                    <div class="ttt-setup-fields osc-c-two-col">
+                      <label>
+                        <span>Name</span>
+                        <input id="osc-c-sequence-name-input" type="text" placeholder="Sequence 1">
+                      </label>
+                      <label class="osc-c-check-label">
+                        <input id="osc-c-sequence-enabled-input" type="checkbox">
+                        <span>Enabled</span>
+                      </label>
+                    </div>
+                    <div class="ttt-setup-fields osc-c-two-col">
+                      <label>
+                        <span>Step Name</span>
+                        <input id="osc-c-step-name-input" type="text" placeholder="Step 1">
+                      </label>
+                      <label>
+                        <span>Dwell (ms)</span>
+                        <input id="osc-c-step-dwell-input" type="number" min="0" max="60000" step="50" value="250">
+                      </label>
+                    </div>
+                    <div class="sequence-controls">
+                      <div class="btn-row">
+                        <button class="btn btn-primary btn-full" id="osc-c-capture-step-button" type="button">Add Current Position</button>
+                        <button class="btn btn-full" id="osc-c-replace-step-button" type="button">Replace Selected</button>
+                      </div>
+                      <div class="btn-row">
+                        <button class="btn btn-full" id="osc-c-add-preview-step-button" type="button">Add Test Step</button>
+                      </div>
+                      <div class="btn-row">
+                        <button class="btn btn-full" id="osc-c-run-button" type="button">Run</button>
+                        <button class="btn btn-full" id="osc-c-loop-button" type="button">Loop</button>
+                        <button class="btn btn-danger btn-full" id="osc-c-stop-button" type="button">Stop</button>
+                      </div>
+                      <div class="btn-row">
+                        <button class="btn btn-full" id="osc-c-clear-steps-button" type="button">Clear Steps</button>
+                        <button class="btn btn-full" id="osc-c-delete-sequence-button" type="button">Delete Sequence</button>
+                      </div>
+                    </div>
+                    <div class="osc-c-step-list" id="osc-c-step-list"></div>
+                  </div>
+                </div>
+
+                <div class="game-page-side">
+                  <div class="game-plan-card ttt-setup-card">
+                    <p class="game-kicker">OSC Settings</p>
+                    <div class="ttt-setup-fields">
+                      <label class="osc-c-check-label">
+                        <input id="osc-c-enabled-input" type="checkbox">
+                        <span>Enable Listener</span>
+                      </label>
+                      <label>
+                        <span>Run Mode</span>
+                        <select id="osc-c-mode-select">
+                          <option value="preview">Preview / No Robot</option>
+                          <option value="live">Live Robot</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Listen Port</span>
+                        <input id="osc-c-listen-port-input" type="number" min="1" max="65535" value="9012">
+                      </label>
+                      <label>
+                        <span>Allowed Sender IP</span>
+                        <input id="osc-c-allowed-host-input" type="text" placeholder="Any">
+                      </label>
+                      <label class="osc-c-check-label">
+                        <input id="osc-c-send-status-input" type="checkbox">
+                        <span>Send Status</span>
+                      </label>
+                      <label>
+                        <span>Status IP</span>
+                        <input id="osc-c-status-host-input" type="text" value="127.0.0.1">
+                      </label>
+                      <label>
+                        <span>Status Port</span>
+                        <input id="osc-c-status-port-input" type="number" min="1" max="65535" value="9013">
+                      </label>
+                      <label>
+                        <span>Status Address</span>
+                        <input id="osc-c-status-address-input" type="text" value="/dobot/osc_c/status">
+                      </label>
+                      <label>
+                        <span>Direct Run</span>
+                        <input id="osc-c-direct-run-input" type="text" value="/dobot/run">
+                      </label>
+                      <label>
+                        <span>Direct Loop</span>
+                        <input id="osc-c-direct-loop-input" type="text" value="/dobot/loop">
+                      </label>
+                      <label>
+                        <span>Direct Stop</span>
+                        <input id="osc-c-direct-stop-input" type="text" value="/dobot/stop">
+                      </label>
+                    </div>
+                    <div class="sequence-controls">
+                      <div class="btn-row">
+                        <button class="btn btn-primary btn-full" id="osc-c-apply-button" type="button">Apply</button>
+                        <button class="btn btn-full" id="osc-c-refresh-button" type="button">Refresh</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="game-plan-card osc-c-route-card">
+                    <p class="game-kicker">Routes</p>
+                    <div class="osc-c-list compact" id="osc-c-route-list"></div>
+                    <div class="ttt-setup-fields osc-c-route-fields">
+                      <label class="osc-c-check-label">
+                        <input id="osc-c-route-enabled-input" type="checkbox">
+                        <span>Route Enabled</span>
+                      </label>
+                      <label>
+                        <span>Incoming Address</span>
+                        <input id="osc-c-route-address-input" type="text" value="/robot/sequence1">
+                      </label>
+                      <label>
+                        <span>Argument Match</span>
+                        <input id="osc-c-route-arg-input" type="text" placeholder="Optional">
+                      </label>
+                      <label>
+                        <span>Action</span>
+                        <select id="osc-c-route-action-select">
+                          <option value="run_once">Run Once</option>
+                          <option value="play_loop">Loop</option>
+                          <option value="stop">Stop</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Sequence</span>
+                        <select id="osc-c-route-sequence-select"></select>
+                      </label>
+                      <label>
+                        <span>On Start Status</span>
+                        <input id="osc-c-route-start-address-input" type="text" placeholder="/checkin/success/start">
+                      </label>
+                      <label>
+                        <span>On Step Status</span>
+                        <input id="osc-c-route-step-address-input" type="text" placeholder="/checkin/success/step">
+                      </label>
+                      <label>
+                        <span>On Complete Status</span>
+                        <input id="osc-c-route-complete-address-input" type="text" placeholder="/checkin/success/complete">
+                      </label>
+                      <label>
+                        <span>On Error Status</span>
+                        <input id="osc-c-route-error-address-input" type="text" placeholder="/checkin/success/error">
+                      </label>
+                    </div>
+                    <div class="sequence-controls">
+                      <div class="btn-row">
+                        <button class="btn btn-full" id="osc-c-save-route-button" type="button">Save Route</button>
+                        <button class="btn btn-full" id="osc-c-add-route-button" type="button">Add Route</button>
+                      </div>
+                      <button class="btn btn-full" id="osc-c-delete-route-button" type="button">Delete Route</button>
+                    </div>
+                    <div class="osc-c-test-panel">
+                      <p class="game-kicker">Test</p>
+                      <div class="osc-c-test-grid">
+                        <label>
+                          <span>Test Address</span>
+                          <input id="osc-c-test-address-input" type="text" value="/robot/sequence1">
+                        </label>
+                        <label>
+                          <span>Test Args</span>
+                          <input id="osc-c-test-args-input" type="text" placeholder="Comma separated">
+                        </label>
+                        <button class="btn btn-primary btn-full" id="osc-c-send-test-button" type="button">Send Test OSC</button>
+                      </div>
+                      <div class="osc-c-event-list" id="osc-c-event-list"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="center-view" id="center-tictactoe-view">
+          <div class="card game-shell-card">
+            <div class="card-header">
+              <div class="card-header-left">
+                <p class="eyebrow">Games</p>
+                <h2>Tic-Tac-Toe Setup</h2>
+              </div>
+              <div class="games-header-actions">
+                <button class="btn btn-sm" id="tictactoe-back-button" type="button">Back To Menu</button>
+                <button class="btn btn-sm" id="tictactoe-close-button" type="button">Back To Controls</button>
+              </div>
+            </div>
+            <div class="card-body game-shell-body">
+              <div class="game-page-grid ttt-setup-grid">
+                <div class="game-page-main">
+                  <div class="game-plan-card ttt-status-card">
+                    <div class="ttt-mapping-summary">
+                      <div>
+                        <p class="game-kicker">Mapped</p>
+                        <strong id="ttt-mapping-progress">0 / 11 mapped</strong>
+                      </div>
+                      <div>
+                        <p class="game-kicker">Status</p>
+                        <strong id="ttt-readiness-label">Waiting for mapping</strong>
+                      </div>
+                    </div>
+                    <p class="ttt-helper-text" id="ttt-live-position-note">Connect robot for live capture.</p>
+                  </div>
+
+                  <div class="ttt-anchor-grid" id="ttt-anchor-grid"></div>
+                  <div class="ttt-board-map-grid" id="ttt-board-map-grid"></div>
+                </div>
+
+                <div class="game-page-side">
+                  <div class="game-plan-card ttt-setup-card">
+                    <p class="game-kicker">Game Setup</p>
+                    <div class="ttt-setup-fields">
+                      <label>
+                        <span>Screen</span>
+                        <select id="ttt-display-select">
+                          <option value="current">Current Screen</option>
+                          <option value="secondary">Secondary Screen</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div class="sequence-controls">
+                      <button class="btn btn-full" id="ttt-map-board-button" type="button">Map Board</button>
+                      <button class="btn btn-primary btn-full" id="ttt-launch-button" type="button">Launch Tic-Tac-Toe Screen</button>
+                      <div class="btn-row">
+                        <button class="btn btn-full" id="ttt-save-setup-button" type="button">Save Setup</button>
+                        <button class="btn btn-full" id="ttt-load-setup-button" type="button">Load Saved</button>
+                      </div>
+                      <button class="btn btn-full" id="ttt-reset-mapping-button" type="button">Clear All Mappings</button>
+                    </div>
+                  </div>
+
+                  <div class="game-plan-card ttt-routine-card">
+                    <p class="game-kicker">End Routines</p>
+                    <div class="ttt-routine-fields">
+                      <label>
+                        <span>Routine</span>
+                        <select id="ttt-routine-select">
+                          <option value="celebration">Celebration</option>
+                          <option value="loss">Loss</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Step Name</span>
+                        <input id="ttt-routine-step-name" type="text" placeholder="Celebrate 1">
+                      </label>
+                    </div>
+                    <div class="ttt-routine-status" id="ttt-routine-status">0 step(s)</div>
+                    <div class="sequence-controls">
+                      <button class="btn btn-primary btn-full" id="ttt-routine-add-button" type="button">Add Current Position</button>
+                      <div class="btn-row">
+                        <button class="btn btn-full" id="ttt-routine-move-selected-button" type="button">Move To Selected</button>
+                        <button class="btn btn-full" id="ttt-routine-replace-selected-button" type="button">Replace Selected</button>
+                      </div>
+                      <div class="btn-row">
+                        <button class="btn btn-full" id="ttt-routine-play-button" type="button">Play Routine</button>
+                        <button class="btn btn-full" id="ttt-routine-clear-button" type="button">Clear Routine</button>
+                      </div>
+                    </div>
+                    <div class="ttt-routine-list" id="ttt-routine-list"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="col col-right">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <p class="eyebrow">Joints</p>
+              <h2>Jog Control</h2>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="sequence-lock-card jog-lock-card">
+              <div class="sequence-lock-head">
+                <div>
+                  <div class="sequence-lock-title">Tool Angle Lock</div>
+                  <div class="sequence-lock-pose" id="sequence-lock-pose">Capture current tool angle.</div>
+                  <div class="sequence-lock-live" id="sequence-lock-live">Live RX -  RY -  RZ -</div>
+                </div>
+                <div class="sequence-lock-status" id="sequence-lock-status">Off</div>
+              </div>
+              <label class="sequence-lock-toggle">
+                <input id="sequence-lock-enabled-input" type="checkbox">
+                <span>Use lock for jog, sequence, and home</span>
+              </label>
+              <div class="btn-row">
+                <button class="btn btn-full" id="sequence-lock-capture-button" type="button">Capture</button>
+                <button class="btn btn-full" id="sequence-lock-clear-button" type="button">Clear</button>
+              </div>
+              <div class="sequence-lock-test-row">
+                <label>
+                  <span>Step (mm)</span>
+                  <input id="sequence-lock-step-input" type="number" min="1" step="1" value="10">
+                </label>
+                <button class="btn btn-full" id="sequence-lock-test-button" type="button">Test +X</button>
+              </div>
+            </div>
+            <div class="jog-settings jog-settings-right">
+              <label>
+                <span id="joint-step-label">Step (deg)</span>
+                <input id="joint-step-input" type="number" value="5" step="0.5" min="0.1">
+              </label>
+              <label>
+                <span id="joint-speed-label">SpeedJ</span>
+                <input id="joint-speed-input" type="number" value="20" min="1" max="100">
+              </label>
+              <label>
+                <span id="joint-acc-label">AccJ</span>
+                <input id="joint-acc-input" type="number" value="20" min="1" max="100">
+              </label>
+            </div>
+            <div id="joint-summary" class="joint-summary"></div>
+            <div id="joint-grid" class="joint-grid"></div>
+            <div class="jog-subsection">
+              <div class="jog-subsection-head">
+                <p class="eyebrow">Telemetry</p>
+                <h3>End-Effector Pose</h3>
+              </div>
+            <div class="pose-grid pose-grid-right">
+              <div class="pose-cell"><div class="axis">X</div><div class="val" id="pose-x">-</div></div>
+              <div class="pose-cell"><div class="axis">Y</div><div class="val" id="pose-y">-</div></div>
+              <div class="pose-cell"><div class="axis">Z</div><div class="val" id="pose-z">-</div></div>
+              <div class="pose-cell"><div class="axis">RX</div><div class="val" id="pose-rx">-</div></div>
+              <div class="pose-cell"><div class="axis">RY</div><div class="val" id="pose-ry">-</div></div>
+              <div class="pose-cell"><div class="axis">RZ</div><div class="val" id="pose-rz">-</div></div>
+            </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/three.module.js",
+          "three/addons/": "/vendor/three/"
+        }
+      }
+    </script>
+    <script type="module" src="/robot-live-view.js?v=20260528-render-quality-hidden"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,458 @@
+{% extends "layouts/base.html" %}
+{% block title %}EtherCAT Motor Control{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/css/ui.css">
+{% endblock %}
+{% block body %}
+<div class="header">
+        <div class="header-wrapper">
+            <div class="header-left">
+                <h1>EtherCAT Motor Control System</h1>
+                <div class="status">
+                    <span>
+                        <span class="status-dot disconnected" id="statusDot"></span>
+                        <span id="statusText">Disconnected</span>
+                    </span>
+                    <span class="ws-indicator">
+                        <span class="status-dot disconnected" id="wsDot"></span>
+                        WebSocket
+                    </span>
+                </div>
+            </div>
+            <div class="ui-toggle">
+                <label>Classic UI</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="uiToggle" onchange="toggleUI()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <label>New UI</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Left Panel: System Config -->
+        <aside class="panel">
+            <h2>System Config</h2>
+            
+            <div class="config-label">Interface:</div>
+            <div class="config-value" id="interfaceDisplay">Not connected</div>
+            
+            <div class="stats-row">
+                <span>Slaves: <strong id="slaveCount">0</strong></span>
+                <span>Mode: <strong id="modeLabel">--</strong></span>
+            </div>
+
+            <select id="modeSelector" onchange="changeMode()">
+                <option value="8">CSP (Cyclic Sync Position)</option>
+                <option value="1">PP (Profile Position)</option>
+                <option value="3">PV (Profile Velocity)</option>
+            </select>
+
+            <hr>
+
+            <button class="btn btn-outline" onclick="sendCmd('reset')" style="margin-bottom:10px">Reset Fault</button>
+            <button class="btn btn-danger" onclick="sendCmd('disable')" style="margin-bottom:10px">Disable Slaves</button>
+            <button class="btn btn-success" onclick="sendCmd('enable')" id="enableBtn">Enable Slaves</button>
+
+            <hr>
+
+            <div class="config-label">Set Home for Slave:</div>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <select id="homeSlaveSelect" style="flex: 1; margin: 0;" onchange="updateButtonStates()">
+                    <option value="" disabled selected>-- Select Slave --</option>
+                </select>
+                <button class="btn btn-gold" onclick="setHome()" style="width: auto; padding: 10px 15px;" id="setHomeBtn" disabled>Set Home</button>
+            </div>
+            <button class="btn btn-gold" onclick="setHomeAll()" style="margin-bottom: 15px;" id="setHomeAllBtn">Set Home All Slaves</button>
+
+            <hr>
+
+            <div class="config-label">Clear Error for Slave:</div>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <select id="clearErrorSlaveSelect" style="flex: 1; margin: 0;" onchange="updateButtonStates()">
+                    <option value="" disabled selected>-- Select Slave --</option>
+                </select>
+                <button class="btn btn-danger" onclick="clearError()" style="width: auto; padding: 10px 15px;" id="clearErrorBtn" disabled>Clear Err</button>
+            </div>
+
+            <hr>
+
+            <button class="btn" onclick="terminateProgram()" style="background: #8B0000; margin-top: 10px;" id="terminateBtn">⏻ Terminate Program</button>
+
+            <hr>
+
+            <!-- PP Mode Speed -->
+            <div id="speedPP">
+                <h2 style="margin-top: 0; color: var(--accent-green);">PP Speed</h2>
+
+                <div class="config-label">Speed (x1000 units/s):</div>
+                <input type="number" id="ppSpeed" value="80" style="margin-bottom: 8px;" oninput="updatePPEffective()">
+
+                <div class="config-label" style="font-size: 0.7rem; color: var(--text-secondary);">
+                    Velocity: <span id="ppEffectiveVel">80000</span> units/s |
+                    Accel/Decel: <span id="ppEffectiveAccel">40000</span> units/s²
+                </div>
+
+                <button class="btn btn-success" onclick="applyPPSpeed()" style="margin-top: 10px;">Apply PP Speed</button>
+            </div>
+
+            <!-- CSP Mode Speed -->
+            <div id="speedCSP" style="display: none;">
+                <h2 style="margin-top: 0; color: var(--accent-blue);">CSP Speed</h2>
+
+                <div class="config-label">Max Step (units/ms):</div>
+                <input type="number" id="cspMaxStep" value="800" style="margin-bottom: 8px;" oninput="updateCSPEffective()">
+
+                <div class="config-label">Effective Velocity: <span id="cspEffectiveVel">800000</span> units/s</div>
+
+                <button class="btn btn-primary" onclick="applyCSPSpeed()" style="margin-top: 10px;">Apply CSP Speed</button>
+            </div>
+
+            <!-- PV Mode Speed -->
+            <div id="speedPV" style="display: none;">
+                <h2 style="margin-top: 0; color: var(--text-gold);">PV Speed</h2>
+
+                <div class="config-label">Speed (x1000 units/s):</div>
+                <input type="number" id="pvSpeed" value="50" style="margin-bottom: 8px;" oninput="updatePVEffective()">
+
+                <div class="config-label" style="font-size: 0.7rem; color: var(--text-secondary);">
+                    Velocity: <span id="pvEffectiveVel">50000</span> units/s |
+                    Accel/Decel: <span id="pvEffectiveAccel">25000</span> units/s²
+                </div>
+
+                <button class="btn btn-gold" onclick="applyPVSpeed()" style="margin-top: 10px;">Apply PV Speed</button>
+            </div>
+        </aside>
+
+        <!-- Main Panel: Operations -->
+        <main class="panel">
+            <h2>Real-time Operations</h2>
+            
+            <div class="op-row-1">
+                <!-- Position Table -->
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="td-status"></th>
+                                <th>ID</th>
+                                <th>Position (m)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="positionTable">
+                            <tr>
+                                <td class="td-status"><span class="status-icon disabled"></span></td>
+                                <td>#01</td>
+                                <td>0.0000</td>
+                                <td>--</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Manual Controls -->
+                <div class="card" id="manualControls">
+                    <!-- Position Mode Controls (PP/CSP) -->
+                    <div id="positionControls">
+                        <div class="config-label" style="margin-bottom: 10px;">Quick Move:</div>
+                        <div class="quick-move-grid">
+                            <button class="btn btn-outline" onclick="moveTo(-1.0)">-1.0m</button>
+                            <button class="btn btn-outline" onclick="moveTo(-0.5)">-0.5m</button>
+                            <button class="btn btn-outline" onclick="moveTo(0.5)">+0.5m</button>
+                            <button class="btn btn-outline" onclick="moveTo(1.0)">+1.0m</button>
+                            <button class="btn btn-home" onclick="moveTo(0)">HOME (0m)</button>
+                            <button class="btn btn-outline" onclick="moveTo(-0.25)">-0.25m</button>
+                            <button class="btn btn-outline" onclick="moveTo(0.25)">+0.25m</button>
+                        </div>
+                        
+                        <!-- STOP Button -->
+                        <button id="emergencyStopBtn" class="btn btn-danger" onclick="emergencyStop()" style="margin: 15px 0; font-size: 1.2em; padding: 15px; width: 100%;" disabled>
+                            ▪ EMERGENCY STOP
+                        </button>
+                        
+                        <div class="config-label" style="margin-bottom: 10px;">Custom Move:</div>
+                        <select id="slaveSelect" style="margin-bottom: 10px;" onchange="updateButtonStates()">
+                            <option value="" disabled selected>-- Select Slave --</option>
+                        </select>
+                        <input type="number" id="targetPosition" placeholder="Target Position (meters)" step="0.01">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px;">
+                            <button class="btn btn-primary" onclick="executeMove()">Execute Move</button>
+                            <button id="allToHomeBtn" class="btn btn-home" onclick="moveAllToHome()">All to Home</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Velocity Mode Controls (PV) -->
+                    <div id="velocityControls" style="display: none;">
+                        <div class="config-label" style="margin-bottom: 10px;">Velocity Control:</div>
+                        <select id="slaveSelectVel" style="margin-bottom: 15px;" onchange="updateButtonStates()">
+                            <option value="" disabled selected>-- Select Slave --</option>
+                        </select>
+                        
+                        <button class="btn btn-success" onclick="velocityForward()" style="margin-bottom: 10px; font-size: 1.1em; padding: 15px;">
+                            ▲ FORWARD
+                        </button>
+                        <button class="btn btn-danger" onclick="emergencyStop()" style="margin-bottom: 10px; font-size: 1.2em; padding: 20px; background: #dc3545;">
+                            ▪ EMERGENCY STOP
+                        </button>
+                        <button class="btn btn-primary" onclick="velocityBackward()" style="font-size: 1.1em; padding: 15px;">
+                            ▼ BACKWARD
+                        </button>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 10px;">
+                            Speed is set in PV Speed panel on the left
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Template Section -->
+            <div id="templateSection">
+                <h2 style="border-color: var(--text-gold); color: var(--text-gold);">Template Execution</h2>
+
+                <!-- Config file dropdown -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <select id="configFileName" style="flex: 1; margin: 0;">
+                        <option value="">-- Select Config --</option>
+                    </select>
+                    <button class="btn btn-outline" onclick="refreshConfigList()" style="width: auto; padding: 10px 12px;" title="Refresh list">↻</button>
+                    <button class="btn btn-primary" onclick="loadConfigFile()" style="width: auto; padding: 10px 15px;">Load</button>
+                </div>
+                
+                <!-- Steps per Meter Config -->
+                <div class="card" style="margin-bottom: 15px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end;">
+                        <div>
+                            <div class="config-label">Actual Steps/m:</div>
+                            <input type="number" id="actualStepsInput" value="792914" style="margin: 0;">
+                        </div>
+                        <div>
+                            <div class="config-label">Raw Steps/m:</div>
+                            <input type="number" id="rawStepsInput" value="202985985" style="margin: 0;">
+                        </div>
+                        <button class="btn btn-primary" onclick="applyStepsConfig()" style="height: 38px;">Apply</button>
+                    </div>
+                </div>
+                
+                <!-- Config Info -->
+                <div id="configInfo" class="card" style="margin-bottom: 15px; display: none;">
+                    <div style="font-weight: bold; margin-bottom: 10px; color: var(--text-primary);">Config Info</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem;">
+                        <div>
+                            <div class="config-label">Operation Mode:</div>
+                            <div id="cfgOpMode" style="color: var(--text-gold);">--</div>
+                        </div>
+                        <div>
+                            <div class="config-label">Slave Count:</div>
+                            <div id="cfgSlaveCount">--</div>
+                        </div>
+                        <div>
+                            <div class="config-label">Movement Slaves:</div>
+                            <div id="cfgMovementSlaves" style="color: var(--accent-green);">--</div>
+                        </div>
+                        <div>
+                            <div class="config-label">Movement Speed:</div>
+                            <div id="cfgMovementSpeed">--</div>
+                        </div>
+                        <div>
+                            <div class="config-label">Rotation Slaves:</div>
+                            <div id="cfgRotationSlaves" style="color: var(--accent-blue);">--</div>
+                        </div>
+                        <div>
+                            <div class="config-label">Rotation Speed:</div>
+                            <div id="cfgRotationSpeed">--</div>
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <div class="config-label">Movement Mode:</div>
+                            <div id="cfgMovementMode" style="color: var(--accent-green);">--</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Template Steps Table -->
+                <div class="card" style="margin-bottom: 15px; overflow-x: auto;">
+                    <div id="templateName" style="font-weight: bold; margin-bottom: 10px; color: var(--text-gold);">No template loaded</div>
+                    <table id="templateTable" style="width: 100%; font-size: 0.8rem;">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">#</th>
+                                <th>Name</th>
+                                <th style="width: 80px;">Type</th>
+                                <th>Position</th>
+                                <th style="width: 60px;">Delay</th>
+                                <th style="width: 80px;">Time</th>
+                                <th style="width: 100px;">Order</th>
+                            </tr>
+                        </thead>
+                        <tbody id="templateTableBody">
+                            <tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">Load a config file to see steps</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Run buttons -->
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <button class="btn btn-success" onclick="runTemplate()" style="flex:1">▶ Run Template</button>
+                    <button class="btn btn-primary" onclick="runTemplateLoop()" style="flex:1">🔄 Loop Template</button>
+                </div>
+                <button class="btn btn-danger" onclick="emergencyStop()" style="width: 100%; font-size: 1.1em; padding: 15px;">
+                    ■ STOP
+                </button>
+            </div>
+
+            <!-- OSC Section (PP mode only) -->
+            <div id="oscSection" style="margin-top: 20px; display: none;">
+                <h2 style="border-color: var(--text-gold); color: var(--text-gold);">OSC Control</h2>
+
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <span class="status-dot disconnected" id="oscStatusDot"></span>
+                        <span id="oscStatusText" style="font-size: 0.85rem;">Disconnected</span>
+                    </div>
+
+                    <!-- Connection Info (shown when connected) -->
+                    <div id="oscConnectionInfo" style="display: none; margin-bottom: 10px; padding: 8px; background: var(--bg-dark); border-radius: 4px; font-size: 0.75rem;">
+                        <div id="oscRecvInfo" style="color: var(--accent-blue); margin-bottom: 3px;"></div>
+                        <div id="oscSendInfo" style="color: var(--accent-green);"></div>
+                    </div>
+
+                    <!-- OSC Mode Selection -->
+                    <div class="config-label" style="margin-bottom: 5px;">Mode:</div>
+                    <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; cursor: pointer;">
+                            <input type="radio" name="oscMode" value="1" style="margin: 0; width: auto;">
+                            <span>Receive</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; cursor: pointer;">
+                            <input type="radio" name="oscMode" value="2" style="margin: 0; width: auto;">
+                            <span>Send</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; cursor: pointer;">
+                            <input type="radio" name="oscMode" value="3" checked style="margin: 0; width: auto;">
+                            <span>Both</span>
+                        </label>
+                    </div>
+
+                    <!-- Receiver Settings -->
+                    <div style="background: var(--bg-dark); padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                        <div class="config-label" style="color: var(--accent-blue); margin-bottom: 8px;">Receiver (Listen on):</div>
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                            <div>
+                                <div class="config-label">IP:</div>
+                                <input type="text" id="oscRecvIp" value="0.0.0.0" placeholder="0.0.0.0" style="margin: 0;">
+                            </div>
+                            <div>
+                                <div class="config-label">Port:</div>
+                                <input type="number" id="oscRecvPort" value="8001" placeholder="8001" style="margin: 0;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sender Settings -->
+                    <div style="background: var(--bg-dark); padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                        <div class="config-label" style="color: var(--accent-green); margin-bottom: 8px;">Sender (Send to):</div>
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                            <div>
+                                <div class="config-label">IP:</div>
+                                <input type="text" id="oscSendIp" value="127.0.0.1" placeholder="127.0.0.1" style="margin: 0;">
+                            </div>
+                            <div>
+                                <div class="config-label">Port:</div>
+                                <input type="number" id="oscSendPort" value="9000" placeholder="9000" style="margin: 0;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-success" onclick="oscConnect()" id="oscConnectBtn" style="flex: 1;">Start OSC</button>
+                        <button class="btn btn-danger" onclick="oscDisconnect()" id="oscDisconnectBtn" style="flex: 1;" disabled>Stop OSC</button>
+                    </div>
+
+                    <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 10px;">
+                        <div style="margin-bottom: 5px;"><strong>Sends:</strong></div>
+                        <div>/slave_move/&lt;slave_id&gt;/&lt;position&gt;</div>
+                        <div>/template_step/&lt;step_no&gt;</div>
+                        <div>/template_complete</div>
+                        <div style="margin-top: 5px;"><strong>Receives:</strong></div>
+                        <div>/slave_move/&lt;id&gt; &lt;float&gt; - Move slave</div>
+                        <div>/template_run - Run template</div>
+                        <div>/template_stop - Stop template</div>
+                        <div>/enable, /disable, /reset</div>
+                    </div>
+                </div>
+
+                <!-- OSC Log Display -->
+                <div class="card" style="margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-weight: bold; color: var(--text-gold);">OSC Log</span>
+                        <button class="btn btn-outline" onclick="clearOscLog()" style="width: auto; padding: 5px 10px; font-size: 0.7rem;">Clear</button>
+                    </div>
+                    <div id="osc-log-window" style="height: 150px; overflow-y: auto; background: var(--bg-dark); border: 1px solid var(--border-ui); border-radius: 4px; padding: 8px; font-family: monospace; font-size: 0.75rem;"></div>
+                </div>
+            </div>
+
+            <!-- UDP Receiver Section (CSP mode only) -->
+            <div id="udpSection" style="margin-top: 20px; display: none;">
+                <h2 style="border-color: var(--accent-purple); color: var(--accent-purple);">UDP Receiver</h2>
+
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <span class="status-dot disconnected" id="udpStatusDot"></span>
+                        <span id="udpStatusText" style="font-size: 0.85rem;">Disconnected</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div>
+                            <div class="config-label">IP Address:</div>
+                            <input type="text" id="udpIp" value="0.0.0.0" placeholder="0.0.0.0" style="margin: 0;">
+                        </div>
+                        <div>
+                            <div class="config-label">Port:</div>
+                            <input type="number" id="udpPort" value="9000" placeholder="9000" style="margin: 0;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-success" onclick="udpConnect()" id="udpConnectBtn" style="flex: 1;">Connect</button>
+                        <button class="btn btn-danger" onclick="udpDisconnect()" id="udpDisconnectBtn" style="flex: 1;" disabled>Disconnect</button>
+                    </div>
+
+                    <p style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 10px;">
+                        Format: slave,pos or slave1,pos1;slave2,pos2<br>
+                        Example: 0,-0.10;1,0.20
+                    </p>
+                </div>
+
+                <!-- UDP Log Display -->
+                <div class="card" style="margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-weight: bold; color: var(--accent-purple);">UDP Log</span>
+                        <button class="btn btn-outline" onclick="clearUdpLog()" style="width: auto; padding: 5px 10px; font-size: 0.7rem;">Clear</button>
+                    </div>
+                    <div id="udp-log-window" style="height: 150px; overflow-y: auto; background: var(--bg-dark); border: 1px solid var(--border-ui); border-radius: 4px; padding: 8px; font-family: monospace; font-size: 0.75rem;"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel: Logs -->
+        <aside class="panel">
+            <h2>System Logs</h2>
+            <div id="log-window"></div>
+            <button class="btn btn-outline" onclick="clearLogs()" style="margin-top: 10px;">Clear Logs</button>
+            
+            <!-- Template Execution Log -->
+            <h2 style="margin-top: 20px; border-color: var(--text-gold); color: var(--text-gold);">Template Log</h2>
+            <div id="template-log-window" style="height: 200px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--border-ui); border-radius: 4px; padding: 10px; font-family: monospace; font-size: 0.8rem;"></div>
+            <button class="btn btn-outline" onclick="clearTemplateLogs()" style="margin-top: 10px;">Clear Template Log</button>
+
+            <!-- Move Order Log -->
+            <h2 style="margin-top: 20px; border-color: var(--accent-blue); color: var(--accent-blue);">Move Order Log</h2>
+            <div id="move-order-log-window" style="height: 180px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--border-ui); border-radius: 4px; padding: 10px; font-family: monospace; font-size: 0.75rem; white-space: pre-wrap;"></div>
+            <button class="btn btn-outline" onclick="clearMoveOrderLog()" style="margin-top: 10px;">Clear Move Order Log</button>
+        </aside>
+    </div>
+
+    {% endblock %}
+{% block scripts %}
+<script src="/static/js/ui.js"></script>
+{% endblock %}

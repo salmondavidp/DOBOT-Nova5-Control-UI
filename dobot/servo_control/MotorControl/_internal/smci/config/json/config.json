@@ -1,0 +1,148 @@
+{
+    "_comment": "Copy the network_interface from the adapter list shown when starting the server",
+    "default_template": "HMRS_Slider.json",
+    "product": "hmrs_slider",
+    "template_defaults": {
+        "hmrs_slider": {
+            "track": 5,
+            "pillars": 2,
+            "width": 0.5,
+            "height": 1,
+            "maxLeft": 1.7,
+            "maxRight": -1.7,
+            "maxRot": 45
+        },
+        "hmrs": {
+            "track": 5,
+            "pillars": 2,
+            "width": 0.7,
+            "height": 1,
+            "maxLeft": 1.5,
+            "maxRight": -1.5,
+            "maxRot": 45
+        },
+        "matrix_1row": {
+            "track": 2.5,
+            "pillars": 3,
+            "width": 0.4,
+            "height": 0.4,
+            "maxLeft": 1.5,
+            "maxRight": -1.5,
+            "maxRot": 45
+        },
+        "matrix_2row": {
+            "track": 2.5,
+            "pillars": 3,
+            "width": 0.4,
+            "height": 0.4,
+            "maxLeft": 1.5,
+            "maxRight": -1.5,
+            "maxRot": 45
+        },
+        "matrix_3row": {
+            "track": 2.5,
+            "pillars": 3,
+            "width": 0.4,
+            "height": 0.4,
+            "maxLeft": 1.5,
+            "maxRight": -1.5,
+            "maxRot": 45
+        }
+    },
+    "config": {
+        "network_interface": "\\Device\\NPF_{B21FCFC7-17B3-4593-AD19-0B4713ED3938}",
+        "mode": "PV",
+        "num_slaves": 1,
+        "actual_steps_per_meter": 792914,
+        "raw_steps_per_meter": 202985985,
+        "default_delay": 0.5
+    },
+    "speed": {
+        "velocity": 1000,
+        "acceleration": 500,
+        "deceleration": 500
+    },
+    "positions": {
+        "HOME": [
+            0
+        ],
+        "POS_05": [
+            0.5
+        ],
+        "POS_NEG05": [
+            -0.5
+        ],
+        "POS_1": [
+            1
+        ],
+        "POS_NEG1": [
+            -1
+        ],
+        "POS_025": [
+            0.25
+        ],
+        "POS_NEG025": [
+            -0.25
+        ],
+        "END": [
+            0
+        ]
+    },
+    "osc": {
+        "osc_mode": "send",
+        "send_ip": "127.0.0.1",
+        "send_port": 9000,
+        "recv_ip": "0.0.0.0",
+        "recv_port": 8001,
+        "osc_send_address": [
+            "/template_step",
+            "/composition/layers/1/clips/{v}/connect"
+        ]
+    },
+    "template": {
+        "name": "MY_SEQUENCE",
+        "sequence": [
+            [
+                "HOME"
+            ],
+            [
+                "POS_05",
+                1
+            ],
+            [
+                "POS_NEG05"
+            ],
+            [
+                "END"
+            ]
+        ]
+    },
+    "speed_correction": {
+        "ratio": 5.13,
+        "commanded_vel": 100,
+        "real_vel_units_ms": 19.47,
+        "elapsed_s": 40.71,
+        "distance_m": 0.9999
+    },
+    "template_simulation_speed_test": {
+        "movement_velocity": 250000,
+        "movement_distance": 1,
+        "movement_duration": 5.55,
+        "rotation_velocity": 4000,
+        "rotation_distance": 0.015,
+        "rotation_duration": 5.34,
+        "movement_accel": 125000,
+        "movement_decel": 125000,
+        "rotation_accel": 2000,
+        "rotation_decel": 2000
+    },
+    "security": {
+        "tamper_check_in_dev": true
+    },
+    "udp": {
+        "ip": "127.0.0.1",
+        "port": 9008,
+        "mode": 1,
+        "max_step": 150
+    }
+}

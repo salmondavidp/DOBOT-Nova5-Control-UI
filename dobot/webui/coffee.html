@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DOBOT Coffee Service</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="/coffee.css">
+  </head>
+  <body>
+    <main class="coffee-shell">
+      <button class="screen-exit" id="close-button" type="button">Back</button>
+      <button class="screen-fullscreen" id="fullscreen-button" type="button">Fullscreen</button>
+
+      <section class="screen-stage active" id="name-stage">
+        <div class="screen-card screen-card-wide">
+          <div class="name-layout single-panel">
+            <div class="entry-panel">
+              <p class="eyebrow">Customer</p>
+              <h1>Enter your name</h1>
+              <div class="name-display" id="customer-name-display">_</div>
+              <div class="keyboard-grid" id="keyboard-grid"></div>
+              <div class="name-actions">
+                <button class="action-btn secondary" id="keyboard-backspace-button" type="button">Backspace</button>
+                <button class="action-btn secondary" id="keyboard-space-button" type="button">Space</button>
+                <button class="action-btn primary" id="name-next-button" type="button">Next</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen-stage" id="order-stage">
+        <div class="screen-card screen-card-wide">
+          <div class="order-layout">
+            <div class="order-main">
+              <p class="eyebrow">Order</p>
+              <h1>Choose your drink</h1>
+              <div class="drink-grid" id="drink-grid"></div>
+            </div>
+            <aside class="order-side">
+              <div class="summary-card">
+                <p class="eyebrow">Summary</p>
+                <div class="summary-line"><span>Name</span><strong id="summary-name">-</strong></div>
+                <div class="summary-line"><span>Drink</span><strong id="summary-drink">-</strong></div>
+                <div class="summary-line"><span>Gripper</span><strong id="summary-gripper">-</strong></div>
+                <p class="summary-copy" id="summary-copy">Select a drink to create the order.</p>
+              </div>
+              <div class="order-actions">
+                <button class="action-btn secondary" id="order-back-button" type="button">Back</button>
+                <button class="action-btn primary" id="place-order-button" type="button">Place Order</button>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen-stage" id="preparing-stage">
+        <div class="screen-card screen-card-medium preparing-card">
+          <p class="eyebrow">Preparing</p>
+          <h1>Your drink is being prepared</h1>
+          <p class="preparing-copy" id="preparing-copy">The robot is picking up the cup, preparing your drink, and moving it to the delivery point.</p>
+          <div class="preparing-visual" id="preparing-drink-visual" aria-hidden="true"></div>
+          <div class="ticket-card">
+            <div class="ticket-line"><span>Customer</span><strong id="prep-name">-</strong></div>
+            <div class="ticket-line"><span>Drink</span><strong id="prep-drink">-</strong></div>
+            <div class="ticket-line"><span>Order</span><strong id="prep-order">-</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen-stage" id="thanks-stage">
+        <div class="screen-card screen-card-medium thanks-card">
+          <p class="eyebrow">Order Received</p>
+          <h1>Thank you for ordering</h1>
+          <p class="thanks-copy" id="thanks-copy">Your drink order has been queued for the robot.</p>
+          <div class="ticket-card">
+            <div class="ticket-line"><span>Customer</span><strong id="ticket-name">-</strong></div>
+            <div class="ticket-line"><span>Drink</span><strong id="ticket-drink">-</strong></div>
+            <div class="ticket-line"><span>Order</span><strong id="ticket-order">-</strong></div>
+          </div>
+          <div class="name-actions">
+            <button class="action-btn secondary" id="new-order-button" type="button">New Order</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/coffee.js"></script>
+  </body>
+</html>

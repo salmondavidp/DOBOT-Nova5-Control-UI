@@ -1,0 +1,917 @@
+{% extends "layouts/base.html" %}
+{% block title %}SMCI (Servo Motor Controller Interface){% endblock %}
+{% block head %}
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/simpleui.css">
+{% endblock %}
+{% block body %}
+<!-- Interface Selection Overlay -->
+    <div class="interface-overlay" id="interfaceOverlay">
+        <div class="interface-card">
+            <h2>Select EtherCAT Interface</h2>
+            <div class="subtitle">The configured interface could not connect. Please select an interface with slaves, or create a template offline.</div>
+
+            <div class="interface-split">
+                <!-- Left: Network Interfaces -->
+                <div class="interface-left-panel">
+                    <div class="panel-title">Network Interfaces</div>
+                    <div id="interfaceScanning" class="interface-scanning">
+                        <div class="spinner"></div>
+                        <div>Scanning...</div>
+                    </div>
+                    <div id="interfaceListContainer" class="interface-list" style="display:none;"></div>
+                    <div id="interfaceStatusMsg" class="interface-status-msg"></div>
+                    <div class="interface-actions">
+                        <button class="rescan-btn" onclick="scanInterfaces()">Rescan</button>
+                        <span style="font-size: 0.75rem; color: var(--text-light); font-weight: 600;" id="interfaceScanTime"></span>
+                    </div>
+                </div>
+
+                <!-- Right: Templates -->
+                <div class="interface-right-panel">
+                    <div class="panel-title">
+                        Templates
+                        <button class="tpl-btn-sm" style="padding:4px 10px;font-size:0.7rem;float:right;" onclick="showCreateTemplateFromOverlay()">+ Create</button>
+                    </div>
+                    <div id="overlayTplListBody" style="overflow-y:auto;flex:1;">
+                        <div style="color:var(--text-light);text-align:center;padding:20px;font-size:0.85rem;">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Create Overlay (foreground, full-screen, same as run pattern create template) -->
+    <div class="interface-overlay" id="tplCreateOverlay" style="display:none;">
+        <div class="tpl-create-section tpl-editor-section" id="overlayTplCreateSection" style="display:block;position:relative;">
+            <div class="tpl-editor-header">
+                <h3 id="overlayTplCreateTitle">Create New Template</h3>
+                <div>
+                    <button class="tpl-btn-sm tpl-btn-lg btn-cancel" onclick="backToOverlayTemplates()">Back</button>
+                </div>
+            </div>
+
+            <div class="tpl-layout-container">
+                <div class="tpl-layout-form">
+                    <div class="tpl-section">
+                        <div class="tpl-section-title">Template Info</div>
+                        <div class="tpl-form-row">
+                            <div class="input-group">
+                                <label>Template Name</label>
+                                <input type="text" id="overlayTplName" placeholder="My new template" oninput="clearOverlayTplNameError()">
+                                <div id="overlayTplNameError" class="tpl-input-error" style="display:none;">Template name is required</div>
+                            </div>
+
+                            <div class="input-group">
+                                <label>Product</label>
+                                <select id="overlayTplProduct" onchange="overlayTplProductChanged()">
+                                    <option value="hmrs_slider">HMRS_Slider</option>
+                                    <option value="hmrs">HMRS</option>
+                                    <option value="matrix_1row">Matrix (1 Row)</option>
+                                    <option value="matrix_2row">Matrix (2 Rows)</option>
+                                    <option value="matrix_3row">Matrix (3 Rows)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tpl-section">
+                        <div class="tpl-section-title">Track &amp; Pillar Configuration</div>
+                        <div class="tpl-form-row">
+                            <div class="input-group">
+                                <label id="overlayTplTrackSizeLabel">Track Size (m)</label>
+                                <input type="number" id="overlayTplTrackSize" value="" step="0.1" min="1" oninput="overlayTplFormChanged()">
+                            </div>
+                            <div class="input-group">
+                                <label id="overlayTplPillarLabel">No. of Pillars (LED)</label>
+                                <input type="number" id="overlayTplPillarCount" value="" step="1" min="1" oninput="overlayTplFormChanged()">
+                            </div>
+                        </div>
+                        <div class="tpl-form-row">
+                            <div class="input-group">
+                                <label id="overlayTplPillarWidthLabel">LED/TV Width (m)</label>
+                                <input type="number" id="overlayTplPillarWidth" value="" step="0.1" min="0.1" oninput="overlayTplFormChanged()">
+                            </div>
+                            <div class="input-group" id="overlayTplSecondDimGroup" style="display:none;">
+                                <label id="overlayTplSecondDimLabel">LED/TV Width (m)</label>
+                                <input type="number" id="overlayTplSecondDim" value="" step="0.1" min="0.1" oninput="overlayTplFormChanged()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tpl-section">
+                        <div class="tpl-section-title">Distance Limitation</div>
+                        <div class="tpl-form-row tpl-form-row-3" id="overlayTplMovementBoundsRow">
+                            <div class="input-group">
+                                <label id="overlayTplMaxLeftLabel">Max Distance Left (m) <span id="overlayTplMaxLeftHint" class="tpl-avail-info"></span></label>
+                                <input type="number" id="overlayTplMaxLeft" value="" step="0.1" min="0.1" oninput="overlayTplFormChanged()">
+                            </div>
+                            <div class="input-group">
+                                <label id="overlayTplMaxRightLabel">Max Distance Right (m) <span id="overlayTplMaxRightHint" class="tpl-avail-info"></span></label>
+                                <input type="number" id="overlayTplMaxRight" value="" step="0.1" oninput="overlayTplFormChanged()">
+                            </div>
+                            <div class="input-group" id="overlayTplRotationDegreeGroup" style="display:none;">
+                                <label>Max Rotation Degree</label>
+                                <input type="number" id="overlayTplMaxRotation" value="" step="1" min="0" max="360" oninput="overlayTplFormChanged()">
+                            </div>
+                        </div>
+                        <div id="overlayTplFitError" class="tpl-fit-error" style="display:none;"></div>
+                        <div id="overlayTplAvailInfo" class="tpl-avail-info"></div>
+                    </div>
+
+                    <div class="tpl-section">
+                        <div class="tpl-section-title">Slave Info</div>
+                        <div class="tpl-slave-summary" id="overlayTplSlaveInfo">Total slaves: 0</div>
+                        <div id="overlayTplSlaveBreakdown" class="tpl-avail-info" style="display:none;"></div>
+                    </div>
+
+                </div>
+
+                <div class="tpl-right-col">
+                    <div class="tpl-layout-preview" id="overlayTplLayoutPreview">
+                        <canvas class="tpl-layout-canvas" id="overlayTplCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tpl-btn-row">
+                <button class="big-btn" style="background:var(--blue);color:white;" onclick="overlayTplNext()">Next &#10140;</button>
+                <button class="big-btn btn-cancel" onclick="backToOverlayTemplates()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== OVERLAY Step Builder (Separate - no interface needed, no speed test) ========== -->
+    <div class="tpl-step-overlay" id="overlayTplStepOverlay" style="display:none;">
+        <div class="tpl-step-topbar">
+            <h3 id="overlayTplStepTitle">Template Steps</h3>
+            <button class="tpl-btn-sm tpl-btn-lg btn-cancel" onclick="overlayTplStepBack()">Back</button>
+            <button class="tpl-btn-sm tpl-btn-lg" onclick="overlayTplStepSave()" style="background:var(--green);">Save Template</button>
+        </div>
+        <div class="tpl-step-body">
+            <div class="tpl-step-viz">
+                <canvas id="overlayTplStepCanvas"></canvas>
+                <button class="tpl-sim-btn" id="overlayTplSimBtn" onclick="overlayTplSimulate()">Simulate</button>
+                <div class="tpl-zoom-controls">
+                    <button onclick="overlayTplZoomOut()" title="Zoom out">-</button>
+                    <span class="tpl-zoom-label" id="overlayTplZoomLabel">100%</span>
+                    <button onclick="overlayTplZoomIn()" title="Zoom in">+</button>
+                </div>
+                <div class="tpl-topview" id="overlayTplTopView">
+                    <canvas id="overlayTplTopViewCanvas"></canvas>
+                </div>
+                <div class="tpl-step-time-table" id="overlayTplStepTimeTable">
+                    <div class="panel-title">Step Timing</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Move</th>
+                                <th>Delay</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="overlayTplStepTimeTableBody">
+                            <tr><td colspan="6">No steps</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="tpl-step-viz-hint" id="overlayTplStepHint">Click a pillar to select, then drag to move</div>
+            </div>
+            <div class="tpl-step-panel">
+                <div class="tpl-cfg-section">
+                    <h4>Movement Speed</h4>
+                    <div class="tpl-auto-accel-toggle">
+                        <input type="checkbox" id="overlayTplAutoAccelToggle" checked onchange="overlayTplUpdateAutoAccelUI()">
+                        <label for="overlayTplAutoAccelToggle">Auto Accel/Decel = Velocity / 2</label>
+                    </div>
+                    <div class="tpl-cfg-row">
+                        <div class="tpl-cfg-field">
+                            <label>Velocity</label>
+                            <input type="number" id="overlayTplCfgVelocity" value="120000" oninput="overlayTplSyncAutoAccelDecel()">
+                        </div>
+                        <div class="tpl-cfg-field">
+                            <label>Slave Delay (ms)</label>
+                            <input type="number" id="overlayTplCfgSlaveDelay" value="30" min="0">
+                        </div>
+                    </div>
+                    <div class="tpl-auto-accel-line" id="overlayTplAccelDecelLine">Accel-Decel = 60000</div>
+                    <div class="tpl-cfg-row" id="overlayTplAccelDecelInputs">
+                        <div class="tpl-cfg-field">
+                            <label>Acceleration</label>
+                            <input type="number" id="overlayTplCfgAccel" value="60000">
+                        </div>
+                        <div class="tpl-cfg-field">
+                            <label>Deceleration</label>
+                            <input type="number" id="overlayTplCfgDecel" value="60000">
+                        </div>
+                    </div>
+                </div>
+                <div class="tpl-cfg-section" id="overlayTplRotSpeedSection" style="display:none;">
+                    <h4>Rotation Speed</h4>
+                    <div class="tpl-cfg-row">
+                        <div class="tpl-cfg-field">
+                            <label>Velocity</label>
+                            <input type="number" id="overlayTplCfgRotVelocity" value="4000" oninput="overlayTplSyncAutoAccelDecel()">
+                        </div>
+                        <div class="tpl-cfg-field">
+                            <label>CSP Max Step</label>
+                            <input type="number" id="overlayTplCfgRotCspMax" value="50" min="1">
+                        </div>
+                    </div>
+                    <div class="tpl-auto-accel-line" id="overlayTplRotAccelDecelLine">Accel-Decel = 2000</div>
+                    <div class="tpl-cfg-row" id="overlayTplRotAccelDecelInputs">
+                        <div class="tpl-cfg-field">
+                            <label>Acceleration</label>
+                            <input type="number" id="overlayTplCfgRotAccel" value="2000">
+                        </div>
+                        <div class="tpl-cfg-field">
+                            <label>Deceleration</label>
+                            <input type="number" id="overlayTplCfgRotDecel" value="2000">
+                        </div>
+                    </div>
+                </div>
+                <div class="tpl-home-toggle">
+                    <input type="checkbox" id="overlayTplIncludeHomeStep" checked onchange="overlayTplRenderAllStepCards(); overlayTplUpdateStepTimeTable();">
+                    <label for="overlayTplIncludeHomeStep">Add Home step first</label>
+                </div>
+                <div class="tpl-step-actions">
+                    <button class="tpl-add-step-btn" onclick="overlayTplAddStep()">+ Add Step</button>
+                </div>
+                <div class="tpl-step-list" id="overlayTplStepsList"></div>
+            </div>
+        </div>
+    </div>
+
+    {% include "components/simple/status_bar.html" %}
+
+    <!-- Debug Panel (side panel, no overlay) -->
+    <div class="debug-panel" id="debugPanel">
+        <div class="debug-panel-header">
+            <h3>Debug Monitor</h3>
+            <button class="debug-close-btn" onclick="toggleDebugPanel()">&times;</button>
+        </div>
+
+        <div class="debug-section">
+            <div class="debug-section-title">Slave Status</div>
+            <div class="debug-table-wrap">
+                <table class="debug-table" id="debugSlaveTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Position (m)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="debugSlaveTableBody">
+                        <tr><td colspan="3" class="debug-empty">No motors connected</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="debug-section" id="debugTemplateSection" style="display:none;">
+            <div class="debug-section-title">Template Steps</div>
+            <div class="debug-table-wrap">
+                <table class="debug-table" id="debugTemplateTable">
+                    <thead>
+                        <tr>
+                            <th style="width:30px;">#</th>
+                            <th>Name</th>
+                            <th style="width:70px;">Order</th>
+                            <th style="width:120px;">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="debugTemplateTableBody">
+                        <tr><td colspan="4" class="debug-empty">No template loaded</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast-notification" id="toastNotification"></div>
+
+    <!-- ========== PAGE: Main Screen ========== -->
+    <div id="page-main" class="page active">
+        <h1 class="page-title">SMCI</h1>
+        <p class="page-subtitle">Servo Motor Controller Interface</p>
+
+        <div class="main-buttons">
+            <button class="big-btn btn-home" id="btnSetHome" onclick="showPage('home')">
+                <span class="emoji-icon">&#x1F3E0;</span>Set Home Positions
+            </button>
+            <button class="big-btn btn-pattern" id="btnRunPattern" onclick="showPage('pattern')">
+                <span class="emoji-icon">&#x25B6;</span>Run Pattern
+            </button>
+            <button class="big-btn btn-sync" onclick="openSyncMovement()" id="syncMoveBtn">
+                <span class="emoji-icon">&#x21C4;</span>Synchronized Movement
+            </button>
+            <button class="big-btn btn-reset" onclick="resetError()" id="resetErrorBtn" style="display: none;">
+                <span class="emoji-icon">&#x1F527;</span>Reset Error
+            </button>
+        </div>
+        <div class="error-solution" id="errorSolutionBox" hidden>
+            <div class="error-solution-header" id="errorSolutionHeader">0x0000 · Er000</div>
+            <div class="error-solution-title" id="errorSolutionTitle">Error</div>
+            <div class="error-solution-section-title">Cause</div>
+            <div class="error-solution-cause" id="errorSolutionCause"></div>
+            <div class="error-solution-section-title">How to resolve</div>
+            <ul class="error-solution-list" id="errorSolutionList"></ul>
+        </div>
+
+        <div id="disconnectBanner" style="display:none;" class="disconnect-banner"></div>
+
+        <div class="developer-link">
+            <a href="/developer" onclick="if(isPatternRunning){sendCmd('stop');isPatternRunning=false;} sendCmd('disable'); return true;">Developer Mode</a>
+        </div>
+    </div>
+
+    <!-- ========== PAGE: Synchronized Movement ========== -->
+    <div id="page-sync" class="page">
+        <div class="page-header">
+            <button class="back-btn" onclick="leaveSyncPage()">&#8592; Back</button>
+            <h2>Synchronized Movement</h2>
+        </div>
+        <div class="control-section">
+            <div class="card">
+                <h3>UDP Configuration</h3>
+                <div class="udp-grid">
+                    <div class="input-group">
+                        <label>UDP IP</label>
+                        <input type="text" id="udpSyncIp" placeholder="127.0.0.1">
+                    </div>
+                    <div class="input-group">
+                        <label>UDP Port</label>
+                        <input type="number" id="udpSyncPort" placeholder="9000">
+                    </div>
+                </div>
+                <div class="udp-grid">
+                    <div class="input-group">
+                        <label>Mode</label>
+                        <select id="udpModeSelect" onchange="udpModeChanged()">
+                            <option value="0">Position</option>
+                            <option value="1">Duration</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>CSP Max Step</label>
+                        <input type="number" id="udpCspMaxStep" placeholder="800" min="1" oninput="udpSpeedChanged()">
+                    </div>
+                </div>
+                <div class="udp-actions">
+                    <button class="udp-connect-btn" id="udpConnectBtn" onclick="toggleUdpConnection()">Connect</button>
+                    <div class="udp-mode" id="udpModeInfo">Mode: Position</div>
+                </div>
+                <div class="udp-info">
+                    <div class="udp-info-title">UDP Receive Format</div>
+                    <div class="udp-info-line">Position: <code>0,0.14;1,0.00</code> or <code>["0,0.14","1,0.00"]</code></div>
+                    <div class="udp-info-line">Duration: <code>0,1.2,1</code> (slave,duration,dir 1/-1/0)</div>
+                </div>
+                <div class="udp-log">
+                    <div class="udp-log-title">UDP Log</div>
+                    <div class="udp-log-list" id="udpLogList">No UDP messages yet.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== PAGE: Set Home Positions ========== -->
+    <div id="page-home" class="page">
+        <div class="page-header">
+            <button class="back-btn" onclick="showPage('main')">&#8592; Back</button>
+            <h2>Set Home Positions</h2>
+        </div>
+
+        <div class="control-section">
+            <!-- Product Dropdown -->
+            <div class="product-display" id="productDisplay">
+                <select id="productSelect" onchange="changeProductFromDropdown()" style="width:100%;padding:12px 16px;border-radius:12px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-primary);font-size:1rem;font-weight:600;cursor:pointer;">
+                </select>
+            </div>
+
+            <!-- Pillar Layout -->
+            <div class="pillar-container">
+                <div class="pillar-row" id="pillarRow">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+            <div class="pillar-hint" id="pillarHint">Select a pillar to control</div>
+
+            <!-- Movement Type + Direction -->
+            <div class="direction-row">
+                <select id="movementTypeSelect" onchange="onMovementTypeChange()">
+                    <option value="Movement">Movement</option>
+                </select>
+                <button class="dir-btn btn-left" id="btnLeft"
+                    onclick="startVelocity('forward')">
+                    &#9664; LEFT
+                </button>
+                <button class="dir-btn btn-right" id="btnRight"
+                    onclick="startVelocity('backward')">
+                    RIGHT &#9654;
+                </button>
+            </div>
+
+            <!-- Speed Control -->
+            <div class="speed-control" style="display:flex; align-items:center; gap:10px; margin:14px 0; justify-content:center; flex-wrap:wrap;">
+                <label for="velocitySpeed" style="font-size:1.05rem; color:var(--text-secondary);">Speed:</label>
+                <input type="number" id="velocitySpeed" value="1" step="0.1" min="0" max="5" disabled
+                    onchange="applyHomeSpeed()"
+                    style="width:120px; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary); font-size:1.2rem; text-align:center;">
+                <span style="font-size:0.95rem; color:var(--text-secondary);">m/s</span>
+                <label style="display:flex; align-items:center; gap:5px; margin-left:8px; cursor:pointer;">
+                    <input type="checkbox" id="speedLimitCheck" checked onchange="onSpeedLimitChange()"
+                        style="width:16px; height:16px;">
+                    <span style="font-size:0.85rem; color:var(--text-secondary);">Limit (0-5)</span>
+                </label>
+            </div>
+
+            <!-- STOP -->
+            <button class="big-btn btn-stop" onclick="emergencyStop()">STOP</button>
+
+            <!-- Set All Home -->
+            <button class="big-btn btn-set-home" onclick="setAllHome()">Set All Motors as Home Position</button>
+        </div>
+    </div>
+
+    <!-- ========== PAGE: Run Pattern ========== -->
+    <div id="page-pattern" class="page">
+        <div class="page-header">
+            <button class="back-btn" onclick="leavePatternPage()">&#8592; Back</button>
+            <h2>Run Pattern</h2>
+        </div>
+
+        <div class="template-info">
+            <div class="template-label">Active Template</div>
+            <div class="template-name" id="templateNameDisplay">Loading...</div>
+        </div>
+
+        <div class="pattern-grid">
+            <div class="card" id="oscConfigCard">
+                <h3>OSC Configuration</h3>
+                <select id="oscMode" onchange="updateOscModeUI()" style="display:none;">
+                    <option value="send">Send</option>
+                    <option value="receive">Receive</option>
+                    <option value="both">Both</option>
+                </select>
+                <div id="oscSendFields">
+                    <div class="input-group">
+                        <label>Send IP:</label>
+                        <input type="text" id="oscSendIp" value="127.0.0.1">
+                    </div>
+                    <div class="input-group">
+                        <label>Send Port:</label>
+                        <input type="number" id="oscSendPort" value="9000">
+                    </div>
+                </div>
+                <div id="oscRecvFields" style="display:none;">
+                    <div class="input-group">
+                        <label>Receive IP:</label>
+                        <input type="text" id="oscRecvIp" value="0.0.0.0">
+                    </div>
+                    <div class="input-group">
+                        <label>Receive Port:</label>
+                        <input type="number" id="oscRecvPort" value="8001">
+                    </div>
+                </div>
+                <div id="oscAddressList" style="margin-top:10px;"></div>
+                <div class="osc-recv-actions">
+                    <button class="osc-recv-btn" id="oscReceiverBtn" onclick="toggleOscReceiver()">Receiver: Off</button>
+                    <button class="osc-recv-settings-btn" onclick="openOscReceiverSettings()">Receiver Settings</button>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Template Controls</h3>
+                <div class="run-controls">
+                    <button class="big-btn btn-run" onclick="runPattern()" id="runPatternBtn">
+                        <span class="emoji-icon">&#x25B6;</span>Run Template
+                    </button>
+                    <button class="big-btn btn-stop-pattern" onclick="stopPattern()" id="stopPatternBtn" disabled>
+                        <span class="emoji-icon">&#x23F9;</span>Stop Template
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="pattern-status" id="patternStatus"></div>
+
+        <!-- OSC Receiver Settings Modal -->
+        <div class="osc-recv-modal" id="oscReceiverModal" onclick="closeOscReceiverSettings(event)">
+            <div class="osc-recv-card" onclick="event.stopPropagation()">
+                <div class="osc-recv-header">
+                    <h3>OSC Receiver Settings</h3>
+                    <button class="osc-recv-close" onclick="closeOscReceiverSettings()">×</button>
+                </div>
+                <div class="osc-recv-body">
+                    <div class="osc-recv-section">
+                        <div class="osc-recv-row">
+                            <div class="input-group">
+                                <label>Receiver IP</label>
+                                <input type="text" id="oscListenerIp" placeholder="0.0.0.0">
+                            </div>
+                            <div class="input-group">
+                                <label>Receiver Port</label>
+                                <input type="number" id="oscListenerPort" placeholder="7003">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="osc-recv-section">
+                        <div class="osc-addr-title">Active Addresses</div>
+                        <div id="oscListenerList"></div>
+                        <button class="osc-add-addr-toggle" onclick="toggleOscListenerForm()">+ Add Active Address</button>
+
+                        <div class="osc-listener-form" id="oscListenerForm" style="display:none;">
+                            <div class="osc-listener-grid">
+                                <div class="input-group">
+                                    <label>Address</label>
+                                    <input type="text" id="oscListenerAddress" placeholder="/start">
+                                </div>
+                                <div class="input-group osc-action-group">
+                                    <label>Action
+                                        <button class="osc-action-info" type="button" onclick="toggleOscActionInfo(event)">
+                                            i
+                                            <span class="osc-action-tooltip" id="oscActionTooltip">
+                                                <div><strong>start</strong>: value -> position. Example: value 0 = 0.5m</div>
+                                                <div><strong>start_multi</strong>: value -> positions list. Example: value 0 = 0.5,1.0</div>
+                                                <div><strong>move</strong>: args (slave, position). Example: 1, 0.6</div>
+                                                <div><strong>slave_move</strong>: address /slave_move/1/0.6</div>
+                                                <div><strong>home</strong>: move all to 0m</div>
+                                                <div><strong>template_run</strong>: run template</div>
+                                                <div><strong>template_stop</strong>: stop movement</div>
+                                            </span>
+                                        </button>
+                                    </label>
+                                    <select id="oscListenerAction" onchange="oscListenerActionChanged()">
+                                        <option value="start">start</option>
+                                        <option value="start_multi">start_multi</option>
+                                        <option value="move">move</option>
+                                        <option value="slave_move">slave_move</option>
+                                        <option value="home">home</option>
+                                        <option value="template_run">template_run</option>
+                                        <option value="template_stop">template_stop</option>
+                                    </select>
+                                </div>
+                                <div class="input-group" id="oscListenerMappingRow">
+                                    <label>Mapping</label>
+                                    <select id="oscListenerMappingType" onchange="oscListenerMappingChanged()">
+                                        <option value="default">Default</option>
+                                        <option value="custom">Create Custom</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label>Speed</label>
+                                    <select id="oscListenerSpeedType" onchange="oscListenerSpeedChanged()">
+                                        <option value="default">Default</option>
+                                        <option value="mapping" id="oscListenerSpeedMappingOption">From Mapping File</option>
+                                        <option value="custom">Custom</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label>Slaves (comma)</label>
+                                    <input type="text" id="oscListenerSlaves" placeholder="0,1">
+                                </div>
+                            </div>
+
+                            <div class="osc-listener-extra" id="oscListenerMappingCustom" style="display:none;">
+                                <div class="input-group">
+                                    <label>Mapping File Name</label>
+                                    <input type="text" id="oscListenerMappingFile" placeholder="my_mapping">
+                                </div>
+                                <div class="osc-mapping-builder">
+                                    <div class="osc-mapping-row">
+                                        <div class="input-group">
+                                            <label>Value</label>
+                                            <input type="number" id="oscMapValue" placeholder="0">
+                                        </div>
+                                        <div class="input-group">
+                                            <label id="oscMapPositionLabel">Position (m)</label>
+                                            <input type="text" id="oscMapPosition" placeholder="0.5">
+                                        </div>
+                                        <button class="osc-map-add" type="button" onclick="addOscMappingEntry()">Add</button>
+                                    </div>
+                                    <div class="osc-mapping-hint" id="oscMapHint">Add one mapping row at a time.</div>
+                                    <div id="oscMappingList"></div>
+                                </div>
+                            </div>
+
+                            <div class="osc-listener-extra" id="oscListenerSpeedCustom" style="display:none;">
+                                <div class="osc-listener-grid">
+                                    <div class="input-group">
+                                        <label>Velocity</label>
+                                        <input type="number" id="oscListenerSpeedVel" placeholder="80000">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Acceleration</label>
+                                        <input type="number" id="oscListenerSpeedAcc" placeholder="40000">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Deceleration</label>
+                                        <input type="number" id="oscListenerSpeedDec" placeholder="40000">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="osc-add-addr-btn" onclick="addOscListener()">Add Address</button>
+                        </div>
+                    </div>
+
+                    <div class="osc-recv-actions-row">
+                        <button class="osc-save-btn" onclick="saveOscReceiverSettings()">Save Receiver</button>
+                        <button class="osc-cancel-btn" onclick="closeOscReceiverSettings()">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Template Editor Button -->
+        <button class="big-btn tpl-editor-btn" id="btnOpenTplEditor" onclick="openTemplateEditor()">
+            <span class="emoji-icon">&#x270F;</span>Template Editor
+        </button>
+
+        <!-- ========== Template Editor: List View ========== -->
+        <div class="tpl-editor-section" id="tplEditorList" style="display:none;">
+            <div class="tpl-editor-header">
+                <h3>Templates</h3>
+                <div>
+                    <button class="tpl-btn-sm tpl-btn-lg" onclick="showCreateTemplate()">Create New</button>
+                    <button class="tpl-btn-sm tpl-btn-lg" onclick="openTemplateUpload()">Upload</button>
+                    <button class="tpl-btn-sm tpl-btn-lg btn-cancel" onclick="closeTemplateEditor()">Close</button>
+                </div>
+            </div>
+            <input type="file" id="tplUploadInput" accept=".json,application/json" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
+            <div id="tplListBody">
+                <!-- template list items rendered here -->
+            </div>
+        </div>
+
+        <!-- ========== Template Editor: Create/Edit View ========== -->
+        <div class="tpl-editor-section tpl-create-section" id="tplCreateSection" style="display:none;">
+            <div class="tpl-editor-header">
+                <h3 id="tplCreateTitle">Create New Template</h3>
+                <div>
+                    <button class="tpl-btn-sm tpl-btn-lg btn-cancel" onclick="backToTemplateList()">Back</button>
+                </div>
+            </div>
+
+            <div class="tpl-layout-container">
+                <div class="tpl-layout-form">
+                    <div class="tpl-section">
+                        <div class="tpl-section-title">Template Info</div>
+                        <div class="tpl-form-row">
+                            <div class="input-group">
+                                <label>Template Name</label>
+                                <input type="text" id="tplName" placeholder="My new template" oninput="clearTplNameError()">
+                                <div id="tplNameError" class="tpl-input-error" style="display:none;">Template name is required</div>
+                            </div>
+
+                            <div class="input-group">
+                                <label>Product</label>
+                                <select id="tplProduct" onchange="tplProductChanged()">
+                                    <option value="hmrs_slider">HMRS_Slider</option>
+                                    <option value="hmrs">HMRS</option>
+                                    <option value="matrix_1row">Matrix (1 Row)</option>
+                                    <option value="matrix_2row">Matrix (2 Rows)</option>
+                                    <option value="matrix_3row">Matrix (3 Rows)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tpl-section">
+                        <div class="tpl-section-title">Track &amp; Pillar Configuration</div>
+                        <div class="tpl-form-row">
+                            <div class="input-group">
+                                <label id="tplTrackSizeLabel">Track Size (m)</label>
+                                <input type="number" id="tplTrackSize" value="" step="0.1" min="1" oninput="tplFormChanged()">
+                            </div>
+                            <div class="input-group">
+                                <label id="tplPillarLabel">No. of Pillars (LED)</label>
+                                <input type="number" id="tplPillarCount" value="" step="1" min="1" oninput="tplFormChanged()">
+                            </div>
+                        </div>
+                        <div class="tpl-form-row">
+                            <div class="input-group">
+                                <label id="tplPillarWidthLabel">LED/TV Width (m)</label>
+                                <input type="number" id="tplPillarWidth" value="" step="0.1" min="0.1" oninput="tplFormChanged()">
+                            </div>
+                            <!-- Secondary dimension: LED/TV Width for matrix, LED/TV Height for HMRS -->
+                            <div class="input-group" id="tplSecondDimGroup" style="display:none;">
+                                <label id="tplSecondDimLabel">LED/TV Width (m)</label>
+                                <input type="number" id="tplSecondDim" value="" step="0.1" min="0.1" oninput="tplFormChanged()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tpl-section">
+                        <div class="tpl-section-title">Distance Limitation</div>
+                        <div class="tpl-form-row tpl-form-row-3" id="tplMovementBoundsRow">
+                            <div class="input-group">
+                                <label id="tplMaxLeftLabel">Max Distance Left (m) <span id="tplMaxLeftHint" class="tpl-avail-info"></span></label>
+                                <input type="number" id="tplMaxLeft" value="" step="0.1" min="0.1" oninput="tplFormChanged()">
+                            </div>
+                            <div class="input-group">
+                                <label id="tplMaxRightLabel">Max Distance Right (m) <span id="tplMaxRightHint" class="tpl-avail-info"></span></label>
+                                <input type="number" id="tplMaxRight" value="" step="0.1" oninput="tplFormChanged()">
+                            </div>
+                            <!-- HMRS-only: Max Rotation Degree -->
+                            <div class="input-group" id="tplRotationDegreeGroup" style="display:none;">
+                                <label>Max Rotation Degree</label>
+                                <input type="number" id="tplMaxRotation" value="" step="1" min="0" max="360" oninput="tplFormChanged()">
+                            </div>
+                        </div>
+                        <div id="tplFitError" class="tpl-fit-error" style="display:none;"></div>
+                        <div id="tplAvailInfo" class="tpl-avail-info"></div>
+                    </div>
+
+                    <div class="tpl-section">
+                        <div class="tpl-section-title">Slave Info</div>
+                        <div class="tpl-slave-summary" id="tplSlaveInfo">Total slaves: 0</div>
+                        <!-- Slave breakdown (HMRS / Matrix) -->
+                        <div id="tplSlaveBreakdown" class="tpl-avail-info" style="display:none;"></div>
+                    </div>
+
+                </div>
+
+                <div class="tpl-right-col">
+                    <div class="tpl-layout-preview" id="tplLayoutPreview">
+                        <canvas class="tpl-layout-canvas" id="tplLayoutCanvas"></canvas>
+                    </div>
+                    <div class="tpl-btn-row">
+                        <button class="big-btn btn-run" onclick="tplNext()" id="tplNextBtn">Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== Step Builder Fullscreen Overlay (Run Pattern - requires interface) ========== -->
+        <div class="tpl-step-overlay" id="tplStepOverlay">
+            <div class="tpl-step-topbar">
+                <h3 id="tplStepTitle">Template Steps</h3>
+                <button class="tpl-btn-sm tpl-btn-lg btn-cancel" onclick="tplStepBack()">Back</button>
+                <button class="tpl-btn-sm tpl-btn-lg" onclick="tplSaveTemplate()" style="background:var(--green);">Save Template</button>
+            </div>
+            <div class="tpl-step-body">
+                <div class="tpl-step-viz">
+                    <canvas id="tplStepCanvas"></canvas>
+                    <button class="tpl-sim-btn" id="tplSimBtn" onclick="tplSimulate()">Simulate</button>
+                    <button class="tpl-config-btn" id="tplConfigBtn" onclick="toggleTplSpeedTestPanel()" title="Simulation Config">
+                        &#9881;
+                    </button>
+                    <div class="tpl-zoom-controls">
+                        <button onclick="tplZoomOut()" title="Zoom out">-</button>
+                        <span class="tpl-zoom-label" id="tplZoomLabel">100%</span>
+                        <button onclick="tplZoomIn()" title="Zoom in">+</button>
+                    </div>
+                    <div class="tpl-topview" id="tplTopView">
+                        <canvas id="tplTopViewCanvas"></canvas>
+                    </div>
+                    <div class="tpl-speed-test-panel" id="tplSpeedTestPanel">
+                        <div class="panel-title">Simulation Config</div>
+                        <div class="panel-row">
+                            <span style="font-size:0.78rem;font-weight:700;color:var(--text-light);">Slave</span>
+                            <select id="tplSpeedTestSlave"></select>
+                        </div>
+                        <div class="panel-row">
+                            <span style="font-size:0.78rem;font-weight:700;color:var(--text-light);">Distance (m)</span>
+                            <input type="number" id="tplSpeedTestDistance" value="1" step="0.1" min="0.01">
+                        </div>
+                        <button class="panel-btn" id="tplTestMoveSpeedBtn" onclick="tplRunSpeedTest('movement')">Test Movement Speed</button>
+                        <button class="panel-btn rotation" id="tplTestRotSpeedBtn" onclick="tplRunSpeedTest('rotation')" style="display:none;">Test Rotation Speed</button>
+                        <div class="panel-result" id="tplSpeedTestResult">Enter distance and run a test.</div>
+                    </div>
+                    <div class="tpl-step-time-table" id="tplStepTimeTable">
+                        <div class="panel-title">Step Timing</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Move</th>
+                                    <th>Delay</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tplStepTimeTableBody">
+                                <tr><td colspan="6">No steps</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="tpl-step-viz-hint" id="tplStepHint">Click a pillar to select, then drag to move</div>
+                </div>
+                <div class="tpl-step-panel">
+                    <!-- Config section -->
+                    <div class="tpl-cfg-section">
+                        <h4>Movement Speed</h4>
+                        <div class="tpl-auto-accel-toggle">
+                            <input type="checkbox" id="tplAutoAccelToggle" checked onchange="tplUpdateAutoAccelUI()">
+                            <label for="tplAutoAccelToggle">Auto Accel/Decel = Velocity / 2</label>
+                        </div>
+                        <div class="tpl-cfg-row">
+                            <div class="tpl-cfg-field">
+                                <label>Velocity</label>
+                                <input type="number" id="tplCfgVelocity" value="120000" oninput="tplSyncAutoAccelDecel()">
+                            </div>
+                            <div class="tpl-cfg-field">
+                                <label>Slave Delay (ms)</label>
+                                <input type="number" id="tplCfgSlaveDelay" value="30" min="0">
+                            </div>
+                        </div>
+                        <div class="tpl-auto-accel-line" id="tplAccelDecelLine">Accel-Decel = 60000</div>
+                        <div class="tpl-cfg-row" id="tplAccelDecelInputs">
+                            <div class="tpl-cfg-field">
+                                <label>Acceleration</label>
+                                <input type="number" id="tplCfgAccel" value="60000">
+                            </div>
+                            <div class="tpl-cfg-field">
+                                <label>Deceleration</label>
+                                <input type="number" id="tplCfgDecel" value="60000">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Rotation Speed (HMRS only) -->
+                    <div class="tpl-cfg-section" id="tplRotSpeedSection" style="display:none;">
+                        <h4>Rotation Speed</h4>
+                        <div class="tpl-cfg-row">
+                            <div class="tpl-cfg-field">
+                                <label>Velocity</label>
+                                <input type="number" id="tplCfgRotVelocity" value="4000" oninput="tplSyncAutoAccelDecel()">
+                            </div>
+                            <div class="tpl-cfg-field">
+                                <label>CSP Max Step</label>
+                                <input type="number" id="tplCfgRotCspMax" value="50" min="1">
+                            </div>
+                        </div>
+                        <div class="tpl-auto-accel-line" id="tplRotAccelDecelLine">Accel-Decel = 2000</div>
+                        <div class="tpl-cfg-row" id="tplRotAccelDecelInputs">
+                            <div class="tpl-cfg-field">
+                                <label>Acceleration</label>
+                                <input type="number" id="tplCfgRotAccel" value="2000">
+                            </div>
+                            <div class="tpl-cfg-field">
+                                <label>Deceleration</label>
+                                <input type="number" id="tplCfgRotDecel" value="2000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tpl-home-toggle">
+                        <input type="checkbox" id="tplIncludeHomeStep" checked onchange="tplRenderAllStepCards(); tplUpdateStepTimeTable();">
+                        <label for="tplIncludeHomeStep">Add Home step first</label>
+                    </div>
+
+                    <div class="tpl-step-actions">
+                        <button class="tpl-add-step-btn" onclick="tplAddStep()">+ Add Step</button>
+                    </div>
+
+                    <div class="tpl-step-list" id="tplStepsList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step Back Confirmation Modal -->
+        <div class="tpl-confirm-modal" id="tplStepBackModal" onclick="tplHideStepBackConfirm(event)">
+            <div class="tpl-confirm-card" onclick="event.stopPropagation()">
+                <div class="tpl-confirm-title">Discard changes?</div>
+                <div class="tpl-confirm-body">Your current edits will be lost. Do you want to go back?</div>
+                <div class="tpl-confirm-actions">
+                    <button class="tpl-confirm-btn cancel" onclick="tplHideStepBackConfirm()">Cancel</button>
+                    <button class="tpl-confirm-btn discard" onclick="tplConfirmStepBack()">Discard &amp; Back</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- License Modal -->
+    <div class="license-modal" id="licenseModal" aria-hidden="true">
+        <div class="license-modal-backdrop" onclick="closeLicenseModal()"></div>
+        <div class="license-modal-card" role="dialog" aria-modal="true" aria-labelledby="licenseModalTitle">
+            <button class="license-modal-close" onclick="closeLicenseModal()" aria-label="Close license modal">&times;</button>
+            <h3 id="licenseModalTitle">License Activation</h3>
+            <div class="license-sub">Upload your license file to activate SMCI.</div>
+            <div class="license-status" id="licenseStatusBox">Checking license status...</div>
+            <input type="file" id="licenseFileInput" accept=".lic" />
+            <button id="licenseUploadBtn" onclick="uploadLicenseFromModal()">Upload License</button>
+            <div class="license-note" id="licenseMessage"></div>
+        </div>
+        <div class="license-loading-overlay" id="licenseLoadingOverlay">
+            <div class="license-loading-card">
+                <div class="license-loading-title">Activating SMCI</div>
+                <div class="license-loading-sub" id="licenseLoadingSubtitle">Please wait while we set everything up...</div>
+                <div class="license-progress-track"><div class="license-progress-fill" id="licenseProgressFill"></div></div>
+                <div class="license-progress-pct" id="licenseProgressPct">0%</div>
+                <div class="license-steps" id="licenseStepsContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    {% include "components/simple/footer.html" %}
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/simpleui.js"></script>
+{% endblock %}

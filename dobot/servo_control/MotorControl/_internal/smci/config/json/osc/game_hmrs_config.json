@@ -1,0 +1,11 @@
+{
+    "speed": {
+        "velocity": 120000,
+        "acceleration": 60000,
+        "deceleration": 60000
+    },
+    "mapped_value": {
+        "0": [0.5, -0.5],
+        "1": [0.0, 0.0]
+    }
+}

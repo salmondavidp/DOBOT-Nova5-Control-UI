@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DOBOT Chess</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="/chess.css">
+  </head>
+  <body>
+    <main class="chess-app">
+      <button class="screen-button screen-back" id="close-button" type="button">Back</button>
+      <button class="screen-button screen-full" id="fullscreen-button" type="button">Fullscreen</button>
+
+      <section class="stage-panel active" id="name-stage">
+        <div class="stage-card stage-card-wide">
+          <div class="name-stage-layout">
+            <aside class="leaderboard-panel">
+              <p class="eyebrow">Chess</p>
+              <h2>Player Setup</h2>
+              <div class="setup-facts">
+                <div>
+                  <span>Rules</span>
+                  <strong>Legal moves only</strong>
+                </div>
+                <div>
+                  <span>Guide</span>
+                  <strong>Green borders</strong>
+                </div>
+                <div>
+                  <span>Robot</span>
+                  <strong>Queued movement</strong>
+                </div>
+              </div>
+            </aside>
+            <div class="name-entry-panel">
+              <p class="eyebrow">Player</p>
+              <h1>Enter your name</h1>
+              <div class="name-display" id="player-name-display">_</div>
+              <div class="keyboard-grid" id="keyboard-grid"></div>
+              <div class="name-actions">
+                <button class="action-btn secondary" id="keyboard-backspace-button" type="button">Backspace</button>
+                <button class="action-btn secondary" id="keyboard-space-button" type="button">Space</button>
+                <button class="action-btn primary" id="name-next-button" type="button">Next</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stage-panel" id="setup-stage">
+        <div class="stage-card stage-card-medium">
+          <p class="eyebrow">Setup</p>
+          <h1>Choose your game</h1>
+
+          <div class="setup-group">
+            <span class="setup-label">Side</span>
+            <div class="choice-row" id="side-choice-row">
+              <button class="choice-chip" data-side="white" type="button">Play White</button>
+              <button class="choice-chip" data-side="black" type="button">Play Black</button>
+            </div>
+          </div>
+
+          <div class="setup-group">
+            <span class="setup-label">Difficulty</span>
+            <div class="difficulty-grid" id="difficulty-grid">
+              <button class="difficulty-card" data-difficulty="easy" type="button">
+                <strong>Easy</strong>
+              </button>
+              <button class="difficulty-card active" data-difficulty="medium" type="button">
+                <strong>Medium</strong>
+              </button>
+              <button class="difficulty-card" data-difficulty="hard" type="button">
+                <strong>Hard</strong>
+              </button>
+            </div>
+          </div>
+
+          <div class="setup-summary" id="setup-summary"></div>
+          <div class="setup-actions">
+            <button class="action-btn secondary" id="setup-back-button" type="button">Back</button>
+            <button class="action-btn primary" id="start-game-button" type="button">Start</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="stage-panel" id="play-stage">
+        <div class="chess-shell">
+          <section class="chess-board-panel">
+            <header class="chess-header">
+              <div class="title-row">
+                <div class="title-line">
+                  <h1 id="play-title">Your turn</h1>
+                  <p id="turn-note">Select one of your pieces.</p>
+                </div>
+              </div>
+            </header>
+
+            <div class="board-area">
+              <div class="rank-labels" id="rank-labels"></div>
+              <div class="chess-board" id="chess-board"></div>
+              <div class="file-labels" id="file-labels"></div>
+            </div>
+          </section>
+
+          <aside class="chess-side-panel">
+            <div class="side-card status-card">
+              <p class="eyebrow">Game</p>
+              <div class="status-stack">
+                <div class="status-pill">
+                  <span>Player</span>
+                  <strong id="player-name-label">Player</strong>
+                </div>
+                <div class="status-pill">
+                  <span>Side</span>
+                  <strong id="player-color-label">White</strong>
+                </div>
+                <div class="status-pill">
+                  <span>Robot</span>
+                  <strong id="robot-color-label">Black</strong>
+                </div>
+                <div class="status-pill">
+                  <span>Level</span>
+                  <strong id="difficulty-label">Medium</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="side-card guide-card">
+              <p class="eyebrow">Move Guide</p>
+              <div class="guide-row">
+                <span class="guide-swatch selected"></span>
+                <strong>Selected piece</strong>
+              </div>
+              <div class="guide-row">
+                <span class="guide-swatch legal"></span>
+                <strong>Legal move</strong>
+              </div>
+              <div class="guide-row">
+                <span class="guide-swatch capture"></span>
+                <strong>Legal capture</strong>
+              </div>
+              <div class="guide-row">
+                <span class="guide-swatch robot"></span>
+                <strong>DOBOT step</strong>
+              </div>
+              <p id="robot-step-note">During DOBOT movement the board stays visible and player input is paused.</p>
+            </div>
+
+            <div class="side-card control-card">
+              <p class="eyebrow">Controls</p>
+              <button class="btn primary" id="new-game-button" type="button">New Game</button>
+              <button class="btn" id="change-setup-button" type="button">Change Setup</button>
+            </div>
+
+            <div class="side-card move-card">
+              <p class="eyebrow">Moves</p>
+              <div class="move-list" id="move-list"></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <div class="result-overlay" id="result-overlay">
+        <div class="result-card">
+          <p class="eyebrow">Game Complete</p>
+          <h2 id="result-title">Checkmate</h2>
+          <p id="result-copy">The game is over.</p>
+          <div class="result-actions">
+            <button class="btn primary" id="result-new-button" type="button">New Game</button>
+            <button class="btn" id="result-setup-button" type="button">Setup</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="/chess.js"></script>
+  </body>
+</html>

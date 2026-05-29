@@ -1,0 +1,32 @@
+{% extends "layouts/base.html" %}
+{% block title %}SMCI License Activation{% endblock %}
+{% block head %}
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/license.css">
+{% endblock %}
+{% block body %}
+<!-- Main Card -->
+    <div class="card" id="mainCard">
+        <h1>License Activation</h1>
+        <div class="sub">Upload your license file to activate SMCI.</div>
+        <div class="status" id="statusBox">Checking license status...</div>
+        <input type="file" id="licenseFile" accept=".lic" />
+        <button id="uploadBtn">Upload License</button>
+        <div class="note" id="message"></div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-card">
+            <div class="loading-title">Activating SMCI</div>
+            <div class="loading-sub" id="loadingSubtitle">Please wait while we set everything up...</div>
+            <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="progress-pct" id="progressPct">0%</div>
+            <div class="steps" id="stepsContainer"></div>
+        </div>
+    </div>
+
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/license.js"></script>
+{% endblock %}

@@ -1,0 +1,806 @@
+{% extends "layouts/base.html" %}
+{% set page_title = "EtherCAT Motor Control" %}
+{% set nav_links = [] %}
+{% block title %}EtherCAT Motor Control - New UI{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/css/newui.css">
+{% endblock %}
+{% block body %}
+<!-- Interface Selection Overlay -->
+    <div class="interface-overlay" id="interfaceOverlay">
+        <div class="interface-card">
+            <h2>Select EtherCAT Interface</h2>
+            <div class="subtitle">The configured interface could not connect. Please select an interface with EtherCAT slaves.</div>
+
+            <div id="interfaceScanning" class="interface-scanning">
+                <div class="spinner"></div>
+                <div>Scanning network interfaces...</div>
+            </div>
+
+            <div id="interfaceListContainer" class="interface-list" style="display:none;"></div>
+
+            <div id="interfaceStatusMsg" class="interface-status-msg"></div>
+
+            <div class="interface-actions">
+                <button class="rescan-btn" onclick="scanInterfaces()">Rescan</button>
+                <span style="font-size: 0.7rem; color: var(--text-secondary);" id="interfaceScanTime"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Editor Modal -->
+    <div class="tpl-editor-overlay" id="tplEditorOverlay">
+        <div class="tpl-editor-card">
+            <h2>Template Editor</h2>
+            <div class="subtitle" id="tplEditorSubtitle">Edit the currently loaded template</div>
+
+            <div class="tpl-editor-body" id="tplEditorBody">
+                <!-- Template Settings -->
+                <div class="tpl-section">
+                    <h3>Template Settings</h3>
+                    <div class="tpl-field-row">
+                        <div class="tpl-field">
+                            <label>Name</label>
+                            <input type="text" id="tplEditName" style="width: 220px;">
+                        </div>
+                        <div class="tpl-field">
+                            <label>Operation Mode</label>
+                            <select id="tplEditOpMode" onchange="tplEditorOpModeChanged()">
+                                <option value="movement">Movement</option>
+                                <option value="rotation">Rotation</option>
+                                <option value="both">Both</option>
+                            </select>
+                        </div>
+                        <div class="tpl-field">
+                            <label>Simultaneous</label>
+                            <input type="checkbox" id="tplEditSimultaneous" checked>
+                        </div>
+                        <div class="tpl-field">
+                            <label>Slave Delay (ms)</label>
+                            <input type="number" id="tplEditSlaveDelay" min="0" value="0" style="width: 80px;">
+                        </div>
+                        <div class="tpl-field">
+                            <label>Global</label>
+                            <input type="checkbox" id="tplEditIsGlobal" checked>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Speed Settings -->
+                <div class="tpl-section">
+                    <h3>Speed Settings</h3>
+                    <div class="tpl-field-row" id="tplEditMovSpeedRow">
+                        <span style="font-size: 0.75rem; color: var(--accent-green); min-width: 75px;">Movement</span>
+                        <div class="tpl-field">
+                            <label>Velocity</label>
+                            <input type="number" id="tplEditMovVelocity" min="0" style="width: 100px;">
+                        </div>
+                        <div class="tpl-field">
+                            <label>Acceleration</label>
+                            <input type="number" id="tplEditMovAccel" min="0" style="width: 100px;">
+                        </div>
+                        <div class="tpl-field">
+                            <label>Deceleration</label>
+                            <input type="number" id="tplEditMovDecel" min="0" style="width: 100px;">
+                        </div>
+                    </div>
+                    <div class="tpl-field-row" id="tplEditRotSpeedRow" style="display: none;">
+                        <span style="font-size: 0.75rem; color: var(--accent-blue); min-width: 75px;">Rotation</span>
+                        <div class="tpl-field">
+                            <label>Velocity</label>
+                            <input type="number" id="tplEditRotVelocity" min="0" style="width: 100px;">
+                        </div>
+                        <div class="tpl-field">
+                            <label>Acceleration</label>
+                            <input type="number" id="tplEditRotAccel" min="0" style="width: 100px;">
+                        </div>
+                        <div class="tpl-field">
+                            <label>Deceleration</label>
+                            <input type="number" id="tplEditRotDecel" min="0" style="width: 100px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Positions -->
+                <div class="tpl-section">
+                    <h3>Positions</h3>
+                    <div style="display:flex; gap:16px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+                        <label style="font-size:0.75rem; color:var(--text-secondary); display:flex; align-items:center; gap:4px;">
+                            Left-End:
+                            <input type="number" id="tplEditLeftEnd" value="2" step="0.1"
+                                oninput="tplEditorValidateAllPositions()"
+                                style="width:70px; padding:4px 6px; border-radius:4px; border:1px solid var(--border-ui); background:var(--bg-card); color:var(--text-primary); font-size:0.75rem; text-align:center;">
+                        </label>
+                        <label style="font-size:0.75rem; color:var(--text-secondary); display:flex; align-items:center; gap:4px;">
+                            Right-End:
+                            <input type="number" id="tplEditRightEnd" value="-2" step="0.1"
+                                oninput="tplEditorValidateAllPositions()"
+                                style="width:70px; padding:4px 6px; border-radius:4px; border:1px solid var(--border-ui); background:var(--bg-card); color:var(--text-primary); font-size:0.75rem; text-align:center;">
+                        </label>
+                        <span style="font-size:0.65rem; color:var(--text-secondary);">Max boundary for first &amp; last slave</span>
+                    </div>
+                    <div id="tplEditPositions"></div>
+                    <div class="tpl-add-step">
+                        <button onclick="tplEditorAddPosition()">+ Add Position</button>
+                    </div>
+                </div>
+
+                <!-- Steps -->
+                <div class="tpl-section">
+                    <h3>Steps</h3>
+                    <div id="tplEditSteps"></div>
+                    <div class="tpl-add-step">
+                        <button onclick="tplEditorAddStep()">+ Add Step</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tpl-editor-footer">
+                <span class="tpl-status" id="tplEditorStatus"></span>
+                <div class="tpl-btns">
+                    <button class="tpl-btn tpl-btn-cancel" onclick="closeTplEditor()">Cancel</button>
+                    <button class="tpl-btn tpl-btn-apply" onclick="applyTplEditorChanges()">Apply</button>
+                    <button class="tpl-btn tpl-btn-save" onclick="saveTplEditorChanges()">Save to File</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% include "components/dark/header.html" %}
+
+    <div class="container">
+        <!-- Left Column (30%) -->
+        <div class="left-column">
+            <!-- Slave Devices Block -->
+            <div class="slave-devices-block">
+                <h2 class="section-title">Slave Devices</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 30px;"></th>
+                            <th>ID</th>
+                            <th>Position (m)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="positionTable">
+                        <tr>
+                            <td><span class="indicator indicator-disabled"></span></td>
+                            <td>#01</td>
+                            <td>0.0000</td>
+                            <td>--</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Real-time Status -->
+            <div class="section">
+                <h2 class="section-title">
+                    Real-time Status
+                    <div class="status-controls">
+                        <button class="btn btn-reset" id="resetBtn" onclick="sendCmd('reset')">Reset</button>
+                        <button class="btn btn-enable" id="enableBtn" onclick="sendCmd('enable')">Enable</button>
+                        <button class="btn btn-disable" id="disableBtn" onclick="sendCmd('disable')">Disable</button>
+                        <button class="btn terminate-btn" onclick="terminateProgram()">Terminate</button>
+                    </div>
+                </h2>
+
+                <div class="status-item">
+                    <span class="status-label">EtherCAT Status:</span>
+                    <span class="status-value status-connected" id="ethercatStatus">Disconnected</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Network Interface:</span>
+                    <span class="status-value" id="interfaceDisplay">Not connected</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Operation Mode:</span>
+                    <span class="status-value" id="modeLabel">--</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Slave Count:</span>
+                    <span class="status-value" id="slaveCount">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Operation Status:</span>
+                    <span class="status-value" id="operationStatus" style="color: var(--text-secondary);">Idle</span>
+                </div>
+
+                <!-- Homing Block -->
+                <div class="homing-block">
+                    <h4>Homing Control</h4>
+                    <select id="homeSlaveSelect" onchange="updateButtonStates()">
+                        <option value="">-- Select Slave --</option>
+                    </select>
+                    <button class="btn btn-gold" onclick="setHome()" style="width: 100%; margin: 8px 0;" id="setHomeBtn" disabled>Set Home for Selected</button>
+                    <button class="btn btn-gold" onclick="setHomeAll()" style="width: 100%;" id="setHomeAllBtn" disabled>Set Home All Slaves</button>
+                </div>
+
+                <!-- System Log -->
+                <h3 style="color: var(--text-secondary); font-size: 0.8rem; margin: 20px 0 10px; text-transform: uppercase;">System Log</h3>
+                <div id="log-window"></div>
+                <button class="btn btn-outline" onclick="clearLogs()" style="width: 100%; margin-top: 10px;">Clear Logs</button>
+            </div>
+        </div>
+
+        <!-- Operation Section (Right 75%) -->
+        <div class="section">
+            <h2 class="section-title">Operation <span id="operationModeLabel" style="font-size: 0.8rem; color: var(--text-gold); font-weight: normal;"></span></h2>
+
+            <div id="errorControls">
+                <div class="control-block error-block">
+                    <h4>Clear Error</h4>
+                    <select id="clearErrorSlaveSelect" onchange="updateButtonStates()">
+                        <option value="">-- Select Slave --</option>
+                    </select>
+                    <button class="btn btn-clear-error" onclick="clearError()" style="width: 100%;" id="clearErrorBtn" disabled>Clear Error</button>
+                </div>
+            </div>
+
+            <div id="startupControls" class="hidden">
+                <div class="control-block">
+                    <h4>Operation Mode</h4>
+                    <div class="mode-list" id="modeSelector">
+                        <div class="mode-item mode-pp" data-mode="1" onclick="selectMode(1)">
+                            <span class="mode-dot"></span>
+                            <span class="mode-label">PP</span>
+                            <span class="mode-desc">Profile Position</span>
+                        </div>
+                        <div class="mode-item mode-pv" data-mode="3" onclick="selectMode(3)">
+                            <span class="mode-dot"></span>
+                            <span class="mode-label">PV</span>
+                            <span class="mode-desc">Profile Velocity</span>
+                        </div>
+                        <div class="mode-item mode-csp active" data-mode="8" onclick="selectMode(8)">
+                            <span class="mode-dot"></span>
+                            <span class="mode-label">CSP</span>
+                            <span class="mode-desc">Cyclic Sync Position</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="modeActions" class="hidden">
+                <!-- CSP Actions -->
+                <div id="cspActions" class="hidden">
+                    <div class="operation-grid">
+                    <div class="control-block" id="cspMovementBlock">
+                        <h4>Custom Movement</h4>
+                        <select id="slaveSelect" onchange="updateButtonStates()">
+                            <option value="">-- Select Slave --</option>
+                        </select>
+                        <div class="position-btns" id="cspQuickBtns">
+                            <button class="btn btn-outline" onclick="moveTo(-1.0)" disabled>-1.0m</button>
+                            <button class="btn btn-outline" onclick="moveTo(-0.5)" disabled>-0.5m</button>
+                            <button class="btn btn-outline" onclick="moveTo(0.5)" disabled>+0.5m</button>
+                            <button class="btn btn-outline" onclick="moveTo(1.0)" disabled>+1.0m</button>
+                            <button class="btn btn-home" onclick="moveTo(0)" style="grid-column: span 2;" disabled>HOME (0m)</button>
+                            <button class="btn btn-outline" onclick="moveTo(-0.25)" disabled>-0.25m</button>
+                            <button class="btn btn-outline" onclick="moveTo(0.25)" disabled>+0.25m</button>
+                        </div>
+                        <input type="number" id="targetPosition" placeholder="Custom position (meters)" step="0.01">
+                        <button class="btn btn-primary" onclick="executeMove()" style="width: 100%; margin-bottom: 8px;" id="executeMoveBtn" disabled>Execute Move</button>
+                        <button class="btn btn-home" onclick="moveAllToHome()" style="width: 100%; margin-bottom: 8px;" id="allToHomeBtn" disabled>Move All to Home</button>
+                        <button class="btn btn-emergency" onclick="emergencyStop()" style="width: 100%;" id="emergencyStopBtn">EMERGENCY STOP</button>
+                    </div>
+
+                    <!-- CSP Speed Block -->
+                    <div class="speed-block csp" id="speedCSP">
+                        <h4>CSP Speed Settings</h4>
+                        <div class="config-label">Max Step (units/ms):</div>
+                        <input type="number" id="cspMaxStep" value="100" oninput="updateCSPEffective()">
+                        <div class="speed-info">Effective Velocity: <span id="cspEffectiveVel">100000</span> units/s</div>
+                        <button class="btn btn-primary" onclick="applyCSPSpeed()" style="width: 100%;">Apply CSP Speed</button>
+                    </div>
+
+                    <!-- Speed from Duration Block -->
+                    <div class="speed-block csp" id="speedFromTime">
+                        <h4>Speed Adjustment Based on Time</h4>
+                        <div class="config-label">Distance (meters):</div>
+                        <input type="number" id="timeDist" value="1" step="0.1" min="0.01" oninput="calcSpeedFromTime()">
+                        <div class="config-label">Duration (seconds):</div>
+                        <input type="number" id="timeDuration" value="10" step="0.5" min="0.1" oninput="calcSpeedFromTime()">
+                        <div class="speed-info" style="margin: 8px 0; font-size: 0.7rem;">
+                            Theoretical: <span id="calcCspVelTheory">79</span> units/ms
+                        </div>
+                        <div id="correctedSpeedRow" style="display:none; margin: 4px 0; font-size: 0.75rem; color: var(--accent-green);">
+                            Corrected: <strong><span id="calcCspVel">--</span> units/ms</strong> (ratio: <span id="calcRatioUsed">--</span>x)
+                        </div>
+                        <div class="speed-info">Steps/m: <span id="calcStepsRef">792,914</span></div>
+                        <button class="btn btn-primary" onclick="applySpeedFromTime()" style="width: 100%;">Apply Calculated Speed</button>
+                    </div>
+
+                    <!-- Observe Speed Block -->
+                    <div class="speed-block csp" id="observeSpeedBlock">
+                        <h4>Observe Actual Speed</h4>
+                        <div class="speed-info" style="margin-bottom: 8px;">Moves Slave 0 by 1m at current CSP speed, measures real time taken to find correction ratio.</div>
+                        <button class="btn btn-primary" id="observeSpeedBtn" onclick="observeSpeed()" style="width: 100%;">Run Speed Test</button>
+                        <div id="observeStatus" style="display:none; margin-top: 8px; padding: 8px; background: var(--bg-secondary); border-radius: 4px; font-size: 0.7rem;">
+                            <div style="color: var(--text-secondary); margin-bottom: 4px;">Running... servo is moving 1m</div>
+                        </div>
+                        <div id="observeResult" style="display:none; margin-top: 8px; padding: 8px; background: var(--bg-secondary); border-radius: 4px; font-size: 0.7rem;">
+                            <div>Distance: <strong><span id="obsDistance">--</span> m</strong> in <strong><span id="obsTime">--</span> s</strong></div>
+                            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border-ui);">
+                                Correction ratio: <strong style="color: var(--accent-green); font-size: 0.85rem;"><span id="obsRatio">--</span>x</strong>
+                            </div>
+                            <div class="speed-info" style="margin-top: 2px;">Servo runs <span id="obsRatio2">--</span>x slower than commanded. This ratio is now applied to the time calculator above.</div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+
+                <!-- PP Actions -->
+                <div id="ppActions" class="hidden">
+                    <!-- Row 1: Custom | Speed -->
+                    <div class="pp-row-1">
+                        <div class="control-block" id="ppMovementBlock">
+                            <h4>Custom Movement</h4>
+                            <select id="slaveSelectPP" onchange="updateButtonStates()">
+                                <option value="">-- Select Slave --</option>
+                            </select>
+                            <div class="position-btns" id="ppQuickBtns">
+                                <button class="btn btn-outline" onclick="moveToPP(-1.0)" disabled>-1.0m</button>
+                                <button class="btn btn-outline" onclick="moveToPP(-0.5)" disabled>-0.5m</button>
+                                <button class="btn btn-outline" onclick="moveToPP(0.5)" disabled>+0.5m</button>
+                                <button class="btn btn-outline" onclick="moveToPP(1.0)" disabled>+1.0m</button>
+                                <button class="btn btn-home" onclick="moveToPP(0)" style="grid-column: span 2;" disabled>HOME (0m)</button>
+                                <button class="btn btn-outline" onclick="moveToPP(-0.25)" disabled>-0.25m</button>
+                                <button class="btn btn-outline" onclick="moveToPP(0.25)" disabled>+0.25m</button>
+                            </div>
+                            <input type="number" id="targetPositionPP" placeholder="Custom position (meters)" step="0.01">
+                            <button class="btn btn-primary" onclick="executeMovePP()" style="width: 100%; margin-bottom: 8px;" id="executeMovePPBtn" disabled>Execute Move</button>
+                            <button class="btn btn-home" onclick="moveAllToHome()" style="width: 100%; margin-bottom: 8px;" id="allToHomePPBtn" disabled>Move All to Home</button>
+                            <button class="btn btn-emergency" onclick="emergencyStop()" style="width: 100%;">EMERGENCY STOP</button>
+                        </div>
+
+                        <!-- PP Speed Block -->
+                        <div class="speed-block pp" id="speedPP">
+                            <h4>PP Speed Settings</h4>
+                            <div class="config-label">Speed (x1000 units/s):</div>
+                            <input type="number" id="ppSpeed" value="80" step="0.1" oninput="updatePPEffective()">
+                            <div class="speed-info">
+                                Velocity: <span id="ppEffectiveVel">80000</span> units/s |
+                                Accel/Decel: <span id="ppEffectiveAccel">40000</span> units/s²
+                            </div>
+                            <button class="btn btn-enable" onclick="applyPPSpeed()" style="width: 100%;">Apply PP Speed</button>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Template (full width) -->
+                    <div class="pp-row-2">
+                        <!-- Template Control -->
+                        <div class="template-block" id="templateSection">
+                            <h4>Template Execution</h4>
+                            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                                <select id="configFileName" style="flex: 1; margin: 0;">
+                                    <option value="">-- Select Config --</option>
+                                </select>
+                                <button class="btn btn-outline" onclick="refreshConfigList()" style="width: auto; padding: 8px 10px;" title="Refresh list">↻</button>
+                                <button class="btn btn-primary" onclick="loadConfigFile()" style="width: auto; padding: 8px 12px;">Load</button>
+                                <button class="btn btn-gold btn-sm" onclick="setAsDefaultTemplate()" style="width: auto; padding: 8px 10px; font-size: 0.7rem;" title="Set as default template for Simple UI">Set Default</button>
+                            </div>
+                            <div style="background: var(--bg-dark); padding: 8px; border-radius: 6px; margin-bottom: 8px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; align-items: end;">
+                                    <div>
+                                        <div class="config-label">Actual Steps/m:</div>
+                                        <input type="number" id="actualStepsInput" value="792914" style="margin: 0; padding: 6px;">
+                                    </div>
+                                    <div>
+                                        <div class="config-label">Raw Steps/m:</div>
+                                        <input type="number" id="rawStepsInput" value="202985985" style="margin: 0; padding: 6px;">
+                                    </div>
+                                    <button class="btn btn-primary btn-sm" onclick="applyStepsConfig()">Apply</button>
+                                </div>
+                            </div>
+                            <div id="configInfo" style="background: var(--bg-dark); padding: 8px; border-radius: 6px; margin-bottom: 8px; display: none;">
+                                <div style="font-weight: bold; margin-bottom: 6px; color: var(--text-primary); font-size: 0.8rem;">Config Info</div>
+                                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-size: 0.75rem;">
+                                    <div>
+                                        <div class="config-label">Op Mode:</div>
+                                        <div id="cfgOpMode" style="color: var(--text-gold);">--</div>
+                                    </div>
+                                    <div>
+                                        <div class="config-label">Slaves:</div>
+                                        <div id="cfgSlaveCount">--</div>
+                                    </div>
+                                    <div>
+                                        <div class="config-label">Movement:</div>
+                                        <div id="cfgMovementSlaves" style="color: var(--accent-green);">--</div>
+                                    </div>
+                                    <div>
+                                        <div class="config-label">Rotation:</div>
+                                        <div id="cfgRotationSlaves" style="color: var(--accent-blue);">--</div>
+                                    </div>
+                                    <div>
+                                        <div class="config-label">Mov Speed:</div>
+                                        <div id="cfgMovementSpeed">--</div>
+                                    </div>
+                                    <div>
+                                        <div class="config-label">Rot Speed:</div>
+                                        <div id="cfgRotationSpeed">--</div>
+                                    </div>
+                                    <div>
+                                        <div class="config-label">Global:</div>
+                                        <div id="cfgIsGlobal" style="color: var(--accent-purple);">--</div>
+                                    </div>
+                                    <div>
+                                        <div class="config-label">Mode:</div>
+                                        <div id="cfgMovementMode" style="color: var(--accent-green);">--</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-dark); padding: 8px; border-radius: 6px; margin-bottom: 8px; overflow-x: auto; max-height: 250px; overflow-y: auto;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <div id="templateName" style="font-weight: bold; color: var(--text-gold); font-size: 0.8rem;">No template loaded</div>
+                                    <button class="btn btn-outline" onclick="openTplEditor()" style="padding: 3px 10px; font-size: 0.7rem; width: auto;" title="Edit template">Edit</button>
+                                </div>
+                                <table id="templateTable" style="width: 100%; font-size: 0.75rem;">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 30px; padding: 6px 4px;">#</th>
+                                            <th style="padding: 6px 4px;">Name</th>
+                                            <th style="width: 70px; padding: 6px 4px;">Type</th>
+                                            <th style="padding: 6px 4px;">Position</th>
+                                            <th style="width: 50px; padding: 6px 4px;">Delay</th>
+                                            <th style="width: 130px; padding: 6px 4px;">Time</th>
+                                            <th style="width: 80px; padding: 6px 4px;">Order</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="templateTableBody">
+                                        <tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 15px;">Load a config file to see steps</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- Run/Loop/Stop in single row -->
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                                <button class="btn btn-enable" onclick="runTemplate()">▶ Run</button>
+                                <button class="btn btn-primary" onclick="runTemplateLoop()">↻ Loop</button>
+                                <button class="btn btn-emergency" onclick="emergencyStop()">■ STOP</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PV Actions -->
+                <div id="pvActions" class="hidden">
+                    <!-- Row 1: Velocity Control | Speed Settings | Loop Test -->
+                    <div class="pv-row-1">
+                        <div class="control-block" id="pvMovementBlock">
+                            <h4>Velocity Control</h4>
+                            <select id="slaveSelectVel" onchange="updateButtonStates()">
+                                <option value="">-- Select Slave --</option>
+                            </select>
+                            <div class="velocity-btns" id="pvVelocityBtns">
+                                <button class="btn btn-enable" onclick="velocityForward()" id="velForwardBtn" disabled>▲ FORWARD</button>
+                                <button class="btn btn-emergency" onclick="emergencyStop()">STOP</button>
+                                <button class="btn btn-primary" onclick="velocityBackward()" id="velBackwardBtn" disabled>▼ BACKWARD</button>
+                            </div>
+                        </div>
+
+                        <!-- PV Speed Block -->
+                        <div class="speed-block pv" id="speedPV">
+                            <h4>PV Speed Settings</h4>
+                            <div class="config-label">Speed (x1000 units/s):</div>
+                            <input type="number" id="pvSpeed" value="1" step="0.1" min="0" oninput="updatePVEffective(false)" onblur="updatePVEffective(true)">
+                            <div style="display: flex; align-items: center; gap: 6px; margin: 6px 0;">
+                                <input type="checkbox" id="pvSpeedLimit" checked onchange="updatePVEffective(true)">
+                                <label for="pvSpeedLimit" style="font-size: 0.75rem; color: var(--text-secondary);">Limit speed (0 - 5)</label>
+                            </div>
+                            <div class="speed-info">
+                                Velocity: <span id="pvEffectiveVel">1000</span> units/s |
+                                Accel/Decel: <span id="pvEffectiveAccel">500</span> units/s²
+                            </div>
+                            <button class="btn btn-gold" onclick="applyPVSpeed()" style="width: 100%;">Apply PV Speed</button>
+                        </div>
+
+                        <!-- Loop Test Block -->
+                        <div class="control-block loop-test-block" id="loopTestBlock">
+                            <h4>Loop Test</h4>
+                            <!-- Live Status Display -->
+                            <div id="loopTestLiveStatus" style="display: none; margin-bottom: 10px; padding: 10px; background: var(--bg-dark); border-radius: 6px; border: 1px solid var(--border-ui);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <span id="loopTestLiveAction" style="font-weight: 600; color: var(--accent-blue);">Idle</span>
+                                    <span id="loopTestLiveCycle" style="font-size: 0.75rem; color: var(--text-secondary);">Cycle: 0/0</span>
+                                </div>
+                                <div id="loopTestLiveValue" style="font-size: 1.5rem; font-weight: 700; font-family: 'Courier New', monospace; color: var(--accent-green); text-align: center;">
+                                    0.000
+                                </div>
+                            </div>
+                            <select id="loopTestSlaveSelect" onchange="updateLoopTestStartBtn()">
+                                <option value="">-- Select Slave --</option>
+                            </select>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                                <div>
+                                    <div class="config-label">Position 1 (m):</div>
+                                    <input type="number" id="loopTestPos1" value="0" step="0.01" style="margin: 0;">
+                                </div>
+                                <div>
+                                    <div class="config-label">Position 2 (m):</div>
+                                    <input type="number" id="loopTestPos2" value="0.03" step="0.01" style="margin: 0;">
+                                </div>
+                            </div>
+                            <!-- Position Limit Checkbox -->
+                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                                <input type="checkbox" id="loopTestPosLimit" checked onchange="applyLoopTestPosLimit()">
+                                <label for="loopTestPosLimit" style="font-size: 0.75rem; color: var(--text-secondary);">Limit position (0 to 0.035)</label>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                                <div>
+                                    <div class="config-label">Start Delay (s):</div>
+                                    <input type="number" id="loopTestStartDelay" value="0" min="0" step="0.1" style="margin: 0;">
+                                </div>
+                                <div>
+                                    <div class="config-label">Stop Delay (s):</div>
+                                    <input type="number" id="loopTestStopDelay" value="0" min="0" step="0.1" style="margin: 0;">
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <div class="config-label">Cycles (0 = infinite):</div>
+                                <input type="number" id="loopTestCycles" value="5" min="0" style="margin: 0;">
+                            </div>
+                            <div id="loopTestStatus" style="margin-bottom: 8px; padding: 6px; background: var(--bg-dark); border-radius: 4px; font-size: 0.75rem; display: none;">
+                                <span id="loopTestStatusText">Idle</span>
+                                <span id="loopTestCycleCount" style="float: right; color: var(--accent-blue);"></span>
+                            </div>
+                            <div class="grid-2">
+                                <button class="btn btn-enable" onclick="startLoopTest()" id="loopTestStartBtn" disabled>▶ Start</button>
+                                <button class="btn btn-disable" onclick="stopLoopTest()" id="loopTestStopBtn" disabled>■ Stop</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Multi-Slave Loop Test (col 1&2) | Empty (col 3) -->
+                    <div class="pv-row-2">
+                        <!-- Multi-Slave Loop Test Block -->
+                        <div class="control-block multi-loop-test-block" id="multiLoopTestBlock">
+                            <h4>Multi-Slave Loop Test</h4>
+                            <div class="multi-loop-container">
+                                <!-- Controls Column (75%) -->
+                                <div class="multi-loop-controls">
+                                    <!-- Slave Selection Buttons -->
+                                    <div>
+                                        <div class="config-label">Select Slaves:</div>
+                                        <div class="slave-select-grid" id="multiLoopSlaveGrid">
+                                            <!-- Slave buttons will be populated dynamically -->
+                                        </div>
+                                        <div style="display: flex; gap: 4px; margin-top: 4px;">
+                                            <button class="btn btn-sm" onclick="selectAllMultiLoopSlaves()" style="flex: 1; background: var(--bg-card);">All</button>
+                                            <button class="btn btn-sm" onclick="deselectAllMultiLoopSlaves()" style="flex: 1; background: var(--bg-card);">None</button>
+                                        </div>
+                                    </div>
+                                    <!-- Position Inputs -->
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                        <div>
+                                            <div class="config-label">Position 1 (m):</div>
+                                            <input type="number" id="multiLoopPos1" value="0" step="0.01" style="margin: 0;">
+                                        </div>
+                                        <div>
+                                            <div class="config-label">Position 2 (m):</div>
+                                            <input type="number" id="multiLoopPos2" value="0.03" step="0.01" style="margin: 0;">
+                                        </div>
+                                    </div>
+                                    <!-- Position Limit Checkbox -->
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <input type="checkbox" id="multiLoopPosLimit" checked onchange="applyMultiLoopPosLimit()">
+                                        <label for="multiLoopPosLimit" style="font-size: 0.75rem; color: var(--text-secondary);">Limit position (0 to 0.035)</label>
+                                    </div>
+                                    <!-- Speed and Accel/Decel Inputs -->
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                        <div>
+                                            <div class="config-label">Speed (m/s):</div>
+                                            <input type="number" id="multiLoopSpeed" value="3" min="0.1" step="0.1" style="margin: 0;">
+                                        </div>
+                                        <div>
+                                            <div class="config-label">Accel/Decel (m/s²):</div>
+                                            <input type="number" id="multiLoopAccDec" value="1.7" min="0.1" step="0.1" style="margin: 0;">
+                                        </div>
+                                    </div>
+                                    <!-- Delay Inputs -->
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                        <div>
+                                            <div class="config-label">Start Delay (s):</div>
+                                            <input type="number" id="multiLoopStartDelay" value="0" min="0" step="0.1" style="margin: 0;">
+                                        </div>
+                                        <div>
+                                            <div class="config-label">Stop Delay (s):</div>
+                                            <input type="number" id="multiLoopStopDelay" value="0" min="0" step="0.1" style="margin: 0;">
+                                        </div>
+                                    </div>
+                                    <!-- Cycles -->
+                                    <div>
+                                        <div class="config-label">Cycles (0 = infinite):</div>
+                                        <input type="number" id="multiLoopCycles" value="5" min="0" style="margin: 0;">
+                                    </div>
+                                    <!-- Cycle Counter -->
+                                    <div id="multiLoopCycleDisplay" style="display: none; padding: 6px; background: var(--bg-dark); border-radius: 4px; text-align: center;">
+                                        <span style="color: var(--accent-purple); font-weight: 600;">Cycle: </span>
+                                        <span id="multiLoopCurrentCycle" style="color: var(--accent-green); font-weight: 700;">0</span>
+                                        <span style="color: var(--text-secondary);"> / </span>
+                                        <span id="multiLoopTotalCycles" style="color: var(--text-secondary);">0</span>
+                                    </div>
+                                    <!-- Timing Display -->
+                                    <div id="multiLoopTimingDisplay" style="display: none; padding: 6px; background: var(--bg-dark); border-radius: 4px; font-size: 0.7rem;">
+                                        <div style="color: var(--accent-cyan); font-weight: 600; text-align: center; margin-bottom: 4px;">Timing</div>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                                            <div style="color: var(--text-secondary);">Pos1→Pos2:</div>
+                                            <div id="multiLoopTimePos2" style="color: var(--accent-green); text-align: right;">--</div>
+                                            <div style="color: var(--text-secondary);">Pos2→Pos1:</div>
+                                            <div id="multiLoopTimePos1" style="color: var(--accent-green); text-align: right;">--</div>
+                                            <div style="color: var(--text-secondary);">Cycle Time:</div>
+                                            <div id="multiLoopCycleTime" style="color: var(--accent-yellow); text-align: right; font-weight: 600;">--</div>
+                                        </div>
+                                    </div>
+                                    <!-- Start/Stop Buttons -->
+                                    <div class="grid-2">
+                                        <button class="btn btn-enable" onclick="startMultiLoopTest()" id="multiLoopStartBtn" disabled>▶ Start</button>
+                                        <button class="btn btn-disable" onclick="stopMultiLoopTest()" id="multiLoopStopBtn" disabled>■ Stop</button>
+                                    </div>
+                                </div>
+                                <!-- Monitor Column (50%) -->
+                                <div class="multi-loop-monitor" id="multiLoopMonitor">
+                                    <div style="font-size: 0.8rem; color: var(--accent-purple); font-weight: 600; text-align: center; margin-bottom: 8px; border-bottom: 1px solid var(--border-ui); padding-bottom: 6px;">Live Status</div>
+                                    <div id="multiLoopSlaveStatus">
+                                        <!-- Slave status items will be populated dynamically -->
+                                        <div style="color: var(--text-secondary); font-size: 0.75rem; text-align: center;">Select slaves to monitor</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Empty column for balance -->
+                        <div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Simple UI Link (Bottom Right) -->
+    <a href="/" onclick="sendCmd('disable'); return true;" style="position: fixed; bottom: 16px; right: 150px; z-index: 100; padding: 8px 14px; background: var(--bg-card); border: 1px solid var(--border-ui); border-radius: 20px; color: var(--text-secondary); text-decoration: none; font-size: 0.75rem; transition: all 0.2s;" onmouseover="this.style.color='var(--accent-blue)';this.style.borderColor='var(--accent-blue)'" onmouseout="this.style.color='var(--text-secondary)';this.style.borderColor='var(--border-ui)'">Simple UI</a>
+
+    <!-- Communication Tooltip (Bottom Right, left of Info) -->
+    <div class="comm-tooltip">
+        <button class="comm-tooltip-btn" onclick="toggleCommTooltip()" title="Communication Settings">C</button>
+        <div class="comm-tooltip-content" id="commTooltipContent">
+            <h3>Communication Settings</h3>
+
+            <!-- UDP Section -->
+            <div class="comm-section udp-section">
+                <h4>
+                    <span class="status-dot disconnected" id="commUdpStatusDot"></span>
+                    UDP Receiver
+                    <span id="commUdpStatusText" style="font-size: 0.7rem; color: var(--text-secondary);">Disconnected</span>
+                </h4>
+                <div class="grid-2" style="gap: 8px; margin-bottom: 8px;">
+                    <div>
+                        <div class="config-label" style="font-size: 0.7rem;">IP Address:</div>
+                        <input type="text" id="commUdpIp" value="0.0.0.0" style="margin: 0; padding: 6px; font-size: 0.8rem;">
+                    </div>
+                    <div>
+                        <div class="config-label" style="font-size: 0.7rem;">Port:</div>
+                        <input type="number" id="commUdpPort" value="9000" style="margin: 0; padding: 6px; font-size: 0.8rem;">
+                    </div>
+                </div>
+                <div class="config-label" style="font-size: 0.7rem; margin-bottom: 4px;">Receive Mode:</div>
+                <div style="display: flex; gap: 12px; margin-bottom: 8px; font-size: 0.75rem;">
+                    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                        <input type="radio" name="udpMode" value="0" checked onchange="setUdpMode(0)" style="margin: 0; width: auto;">
+                        <span>Position <span style="color:var(--text-secondary); font-size:0.65rem;">(slave,pos)</span></span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                        <input type="radio" name="udpMode" value="1" onchange="setUdpMode(1)" style="margin: 0; width: auto;">
+                        <span>Duration <span style="color:var(--text-secondary); font-size:0.65rem;">(slave,sec,dir)</span></span>
+                    </label>
+                </div>
+                <div class="grid-2" style="gap: 8px;">
+                    <button class="btn btn-enable btn-sm" onclick="commUdpConnect()" id="commUdpConnectBtn">Connect</button>
+                    <button class="btn btn-disable btn-sm" onclick="commUdpDisconnect()" id="commUdpDisconnectBtn" disabled>Disconnect</button>
+                </div>
+            </div>
+
+            <!-- OSC Section -->
+            <div class="comm-section osc-section">
+                <h4>
+                    <span class="status-dot disconnected" id="commOscStatusDot"></span>
+                    OSC Control
+                    <span id="commOscStatusText" style="font-size: 0.7rem; color: var(--text-secondary);">Disconnected</span>
+                </h4>
+                <div id="commOscConnectionInfo" style="display: none; margin-bottom: 8px; padding: 6px; background: rgba(88, 166, 255, 0.1); border-radius: 4px; font-size: 0.7rem;">
+                    <div id="commOscRecvInfo" style="color: var(--accent-blue); margin-bottom: 2px;"></div>
+                    <div id="commOscSendInfo" style="color: var(--accent-green);"></div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 8px; font-size: 0.75rem;">
+                    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                        <input type="radio" name="commOscMode" value="1" style="margin: 0; width: auto;">
+                        <span>Recv</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                        <input type="radio" name="commOscMode" value="2" style="margin: 0; width: auto;">
+                        <span>Send</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                        <input type="radio" name="commOscMode" value="3" checked style="margin: 0; width: auto;">
+                        <span>Both</span>
+                    </label>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+                    <div>
+                        <div class="config-label" style="color: var(--accent-blue); font-size: 0.65rem;">Listen:</div>
+                        <input type="text" id="commOscRecvIp" value="0.0.0.0" style="margin: 0; padding: 4px; font-size: 0.7rem;">
+                        <input type="number" id="commOscRecvPort" value="8001" style="margin: 0; padding: 4px; font-size: 0.7rem; width: 100%;">
+                    </div>
+                    <div>
+                        <div class="config-label" style="color: var(--accent-green); font-size: 0.65rem;">Send to:</div>
+                        <input type="text" id="commOscSendIp" value="127.0.0.1" style="margin: 0; padding: 4px; font-size: 0.7rem;">
+                        <input type="number" id="commOscSendPort" value="9000" style="margin: 0; padding: 4px; font-size: 0.7rem; width: 100%;">
+                    </div>
+                </div>
+                <!-- OSC Send Addresses -->
+                <div style="margin-bottom: 8px; padding: 6px; background: rgba(88, 166, 255, 0.05); border-radius: 4px;">
+                    <div class="config-label" style="font-size: 0.65rem; margin-bottom: 4px;">Send Addresses:</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px 12px; font-size: 0.7rem;">
+                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" id="commOscSendMovement" style="margin: 0; width: auto;">
+                            <span>/movement</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" id="commOscSendTemplate" checked style="margin: 0; width: auto;">
+                            <span>/template_step</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" id="commOscSendClipConnect" style="margin: 0; width: auto;">
+                            <span>/clips/{v}/connect</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="grid-2" style="gap: 8px;">
+                    <button class="btn btn-enable btn-sm" onclick="commOscConnect()" id="commOscConnectBtn">Start</button>
+                    <button class="btn btn-disable btn-sm" onclick="commOscDisconnect()" id="commOscDisconnectBtn" disabled>Stop</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Tooltip (Bottom Right) -->
+    <div class="info-tooltip">
+        <button class="info-tooltip-btn" onclick="toggleInfoTooltip()">?</button>
+        <div class="info-tooltip-content" id="infoTooltipContent">
+            <h3>Quick Guide</h3>
+
+            <div id="tipStep1" class="step-info error">
+                <h4>Step 1: System Fault Detected</h4>
+                <ul>
+                    <li>Click <strong>Reset</strong> to recover</li>
+                    <li>Use <strong>Clear Error</strong> for specific slave</li>
+                    <li>Once operational, proceed to Step 2</li>
+                </ul>
+            </div>
+
+            <div id="tipStep2" class="step-info success" style="display: none;">
+                <h4>Step 2: Device Startup</h4>
+                <ul>
+                    <li>Select desired <strong>Operation Mode</strong></li>
+                    <li>Click <strong>Enable</strong> in status section</li>
+                    <li>After enabling, controls become active</li>
+                </ul>
+            </div>
+
+            <div id="tipStep3" class="step-info success" style="display: none;">
+                <h4 id="tipStep3Title">Step 3: Mode Active</h4>
+                <ul id="tipStep3List"></ul>
+            </div>
+
+            <div class="mode-info">
+                <strong>Mode Information:</strong><br>
+                <strong>CSP</strong> - Real-time positioning<br>
+                <strong>PP</strong> - Precise target & templates<br>
+                <strong>PV</strong> - Continuous speed control
+            </div>
+        </div>
+    </div>
+
+    {% endblock %}
+{% block scripts %}
+<script src="/static/js/newui.js"></script>
+{% endblock %}

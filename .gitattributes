@@ -1,0 +1,11 @@
+*.bin binary
+*.wasm binary
+*.exe binary
+*.dll binary
+*.pyd binary
+*.mp3 binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary

@@ -1,0 +1,52 @@
+{% extends "layouts/base.html" %}
+{% set page_title = "Servo Motor Settings" %}
+{% set status_text = "Connecting..." %}
+{% set nav_links = [
+    {"href": "/", "label": "Simple UI"},
+    {"href": "/developer", "label": "Developer"},
+    {"href": "/settings", "label": "Settings", "active": True},
+] %}
+{% block title %}EtherCAT Motor Control - Servo Settings{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/css/settingsui.css">
+{% endblock %}
+{% block body %}
+    {% include "components/dark/header.html" %}
+
+    <div class="content">
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <button class="btn btn-primary" id="refreshBtn" onclick="readDriveParams()" disabled>Refresh</button>
+                <button class="btn btn-live" id="liveBtn" onclick="toggleLive()" disabled>
+                    <span class="live-dot"></span>
+                    <span id="liveBtnText">Live</span>
+                </button>
+                <select class="interval-select" id="intervalSelect" onchange="updateInterval()">
+                    <option value="1000">1s</option>
+                    <option value="2000" selected>2s</option>
+                    <option value="3000">3s</option>
+                    <option value="5000">5s</option>
+                    <option value="10000">10s</option>
+                </select>
+                <span class="status-text" id="readStatus">Waiting for connection...</span>
+            </div>
+            <div>
+                <span style="font-size: 0.75rem; color: var(--text-secondary);" id="lastUpdated"></span>
+            </div>
+        </div>
+
+        <div class="slave-tabs" id="slaveTabs"></div>
+
+        <div id="noData" class="no-data">
+            <h2>No Drive Data</h2>
+            <p>Connect to the servo drives and click "Refresh Parameters" to read all settings.</p>
+            <button class="btn btn-primary" id="refreshBtn2" onclick="readDriveParams()" disabled>Read Drive Parameters</button>
+        </div>
+
+        <div id="settingsContent" style="display: none;"></div>
+    </div>
+
+    {% endblock %}
+{% block scripts %}
+<script src="/static/js/settingsui.js"></script>
+{% endblock %}

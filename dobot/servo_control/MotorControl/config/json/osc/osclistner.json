@@ -1,0 +1,44 @@
+{
+    "receiver": {
+        "ip": "0.0.0.0",
+        "port": 7003
+    },
+    "default_speed": {
+        "velocity": 250000,
+        "acceleration": 125000,
+        "deceleration": 125000
+    },
+    "listeners": [
+        {
+            "address": "/start",
+            "action": "start",
+            "mapping": "@rotorscope_config.json/mapped_value",
+            "speed": "@rotorscope_config.json/speed"
+        },
+        {
+            "address": "/game-hmrs",
+            "action": "start_multi",
+            "mapping": "@game_hmrs_config.json/mapped_value",
+            "speed": "@game_hmrs_config.json/speed",
+            "slaves": [
+                0,
+                1
+            ]
+        },
+        {
+            "address": "/home",
+            "action": "home",
+            "speed": ""
+        },
+        {
+            "address": "/harsh-test",
+            "action": "start_multi",
+            "mapping": "@dasa/mapped_value",
+            "speed": "@dasa/speed",
+            "slaves": [
+                0,
+                1
+            ]
+        }
+    ]
+}
