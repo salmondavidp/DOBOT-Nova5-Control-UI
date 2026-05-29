@@ -2,13 +2,21 @@
 
 Version: `v0.0.1`
 
-DOBOT Nova 5 Control UI is a local control and automation interface for
-connecting to a Nova 5 controller, managing robot state, recording motion
-sequences, routing OSC events, and running interactive robot workflows.
+DOBOT Nova 5 Control UI is a local control and automation interface for DOBOT
+Nova 5 and Nova5 controllers. It connects through DOBOT TCP/IP secondary
+development, manages robot state, records motion sequences, routes OSC events,
+and runs interactive robot workflows.
 
 The repository includes the control dashboard, local robot-control Python code,
 game workflow pages, sounds, bundled runtime libraries, MotorControl helper
 files, saved mapping files, and robot visual assets.
+
+## Project Scope
+
+This project is focused on DOBOT Nova 5 robot control, DOBOT TCP/IP control,
+Python-based robot automation, motion sequence recording, OSC-triggered robot
+actions, and practical workflow control for demonstrations, games, and physical
+interaction setups.
 
 ## Safety Notice
 
